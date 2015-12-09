@@ -62,6 +62,7 @@ var verification = new Promise(function (resolve, reject, user, operation, path)
   var pathArray;
   var i;
   var folderFail;
+  var isParent;
   var fileExists;
   var fileId;
   var permissionsObject;
@@ -99,7 +100,7 @@ var verification = new Promise(function (resolve, reject, user, operation, path)
     lastParent +='.children';
 
     //run the test
-    var isParent= Structure.find({[lastParent]: {$exists: true, $ne: null}}).fetch();
+    isParent= Structure.find({[lastParent]: {$exists: true, $ne: null}}).fetch();
 
     //if there's another level and this was not a folder, we have a problem
     if (isParent && folderFail) {
