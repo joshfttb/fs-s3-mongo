@@ -21,3 +21,21 @@ var fileSchema = new Schema({
 
 //and attach it to our model
 var File = mongoose.model('File'. fileSchema);
+
+//define our structure schema
+var structureSchema  = {
+  user: Objectid,
+  children: [{
+    fileId: Objectid,
+    //denormalize permissions
+    permissions: [{
+      userId: Objectid,
+      permissions: [String]
+    }],
+    children: []
+  }]
+};
+
+//and attach it to our model
+var Structure = mongoose.model('Structure', structureSchema);
+
