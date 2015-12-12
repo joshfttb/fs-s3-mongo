@@ -69,15 +69,12 @@ module.exports.verify = new Promise(function(resolve, reject, user, operation, p
     }
 
     //get permissions for the user on the last parent
-    permissionsArray = File.find({_id: id}).fetch();
+    permissionsArray = File.find({_id: fileId}).fetch();
     permissionsArray.forEach(function (item) {
         if (user === item.userId) {
-            permissions = item.permissions
+            permissions = item.permissions;
         }
     });
-
-    //split permissions into an array
-    permissions = permissions.split(',');
 
     //we now know where our path ends and what our user's permissions are on that end. time to test things
     //important vars:
