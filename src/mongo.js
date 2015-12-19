@@ -4,17 +4,17 @@ const utils = require( './utils.js' );
 
 /* eslint no-unused-vars: 0 */
 
-module.exports.verify = new Promise(function(resolve, reject, user, operation, path) {
+module.exports.verify = function(user, operation, path) {
 
-    var lastParent;
-    var pathArray;
-    var i;
-    var folderFail;
-    var isParent;
-    var fileExists;
-    var fileId;
-    var permissionsArray;
-    var permissions;
+    let lastParent;
+    let pathArray;
+    let i;
+    let folderFail;
+    let isParent;
+    let fileExists;
+    let fileId;
+    let permissionsArray;
+    let permissions;
 
     //josh/test/docs/sext.doc
 
@@ -65,7 +65,9 @@ module.exports.verify = new Promise(function(resolve, reject, user, operation, p
 
     //if this is not an exact match, and the last path was not a folder, we have a problem
     if (!fileExists && folderFail) {
-        reject('tried to add object to file');
+        return new Promise(function (resolve, reject) {
+            reject('tried to add object to file');
+        }
     }
 
     //get permissions for the user on the last parent
@@ -77,21 +79,26 @@ module.exports.verify = new Promise(function(resolve, reject, user, operation, p
     });
 
     //we now know where our path ends and what our user's permissions are on that end. time to test things
-    //important vars:
+    //important lets:
     // fileExists
     // permissions
 
     //a file that already exists is required for some operations, and excluded for others
     //required for read, update, destroy
     if(!fileExists && operation === 'read' || 'update' || 'destroy') {
-        reject('object does not exist');
-    }
-    //can't exist for write
-    if(fileExists && operation === 'write') {
-        reject('object already exists at that path');
+        return new Promise(function (resolve, reject) {
+            reject('object does not exist);
+        }
     }
 
-    //test permissions against various actions
+    //can't exist for write
+    if(fileExists && operation === 'write') {
+        return new Promise(function (resolve, reject) {
+            reject('object already exists at that path');
+        }
+    }
+
+    //test permissions against letious actions
     if(operation === 'read' &&
       permissions.indexOf('read') === -1) {
         reject('user does not have read permissions on this object')
@@ -103,13 +110,13 @@ module.exports.verify = new Promise(function(resolve, reject, user, operation, p
 
     //if it gets this far it's succeeded!
     //return the parent path and remaining path
-    resolve(
-      {
-          lastParent: lastParent,
-          remainingPath: pathArray.slice(i + 1, pathArray.length)
-      }
-    )
-});
+    return new Promise(function (resolve) {
+        resolve ({
+            lastParent: lastParent,
+            remainingPath: pathArray.slice(i + 1, pathArray.length)
+        })
+    }
+};
 
 
 module.exports.search = function search( pathObj ) {
