@@ -30,3 +30,5 @@ bower_components
 *.min.js
 *.map
 *.es5.js
+
+.idea/*

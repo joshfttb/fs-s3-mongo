@@ -98,7 +98,7 @@ module.exports.verify = function(user, operation, path) {
         }
     }
 
-    //test permissions against letious actions
+    //test permissions against various actions
     if(operation === 'read' &&
       permissions.indexOf('read') === -1) {
         reject('user does not have read permissions on this object')
