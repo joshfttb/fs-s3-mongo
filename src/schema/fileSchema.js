@@ -1,21 +1,14 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
+'use strict';
 
-//SCHEMAS
-//define our file schema
-var fileSchema = new Schema({
-  name: String,
-  path: String,
-  size: Number,
-  type: String,
-  dateCreated: Date,
-  lastModified: Date,
-  owner: Objectid,
-  permissions: [{
-    userId: Objectid,
-    permissions: [String] //read, write
-  }]
+const mongoose = require( 'mongoose' );
+const Schema = mongoose.Schema;
+
+const fileSchema = new Schema({
+    _id: Objectid,
+    metaDataId: Objectid, // link to METADATA
+    userId: Objectid, // link to User Collection
+    name: String, // if the resource is a folder, it ends in a '/'
+    parent: String, // '/top/mid/'
 });
 
-//and attach it to our model
-var File = mongoose.model('File'. fileSchema);
+File = mongoose.model( 'File', fileSchema );
