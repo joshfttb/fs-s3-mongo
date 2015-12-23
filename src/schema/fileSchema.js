@@ -11,4 +11,4 @@ const fileSchema = new Schema({
     parent: String, // '/top/mid/'
 });
 
-File = mongoose.model( 'File', fileSchema );
+module.exports = mongoose.model( 'File', fileSchema );

@@ -16,4 +16,4 @@ const metaDataSchema = new Schema({
 });
 
 // and attach it to our model
-Meta = mongoose.model( 'Meta', metaDataSchema );
+module.exports = mongoose.model( 'Meta', metaDataSchema );
