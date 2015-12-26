@@ -22,19 +22,20 @@ chai.use( chaiaspromised );
 
 /*
 TOP LEVEL OPERATIONS TO MONGO OPERATIONS
-read -> verify and return,
-search -> search, verify, and return
+(verify always includes return guid or fail)
+read -> verify,
+search -> search, verify
 inspect -> ?,
 write -> verify and create,
 copy - verify, return, create,
 update - verify and update,
-move -> verify, return, create, destroy,
-rename -> update,
-destroy -> destroy
+move -> verify, create, destroy,
+rename -> verify, update,
+destroy -> verify, destroy
 
-NEEDED MONGO OPS
-Find
-Verify and return
+NEEDED MONGO TOP LEVEL OPS
+Search
+Verify
 Create
 Update
 Destroy
@@ -169,32 +170,28 @@ describe( 'mongo top-level operations', () => {
         ids = ids.map( function mapId( item ) {
             return item._id;
         });
-        // nnow remove all the things
+        // now remove all the things
         Meta.remove({ _id: { $in: ids } });
         Permissions.remove({ resourceId: { $in: ids } });
         File.remove({ metaDataId: { $in: ids } });
     });
 
 
-    describe( 'find', () => {
+    describe( 'search', () => {
         it( 'should find a file by various fields', () => {
 
         });
     });
 
     describe( 'verify', () => {
-
     });
 
     describe( 'create', () => {
-
     });
 
     describe( 'update', () => {
-
     });
 
     describe( 'destroy', () => {
-
     });
 });
