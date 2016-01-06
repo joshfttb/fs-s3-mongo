@@ -366,7 +366,20 @@ describe( 'mongo top-level operations', () => {
     });
 
     describe( 'copy', () => {
-
+        let oldFile;
+        let newFile;
+        // userid, old path, new path
+        before(() => {
+            mongo.copy( userId, '/level1/level2/level3/test.txt', '/copylevel/copy.txt' );
+            oldFile = File.findOne({ name: '/level1/level2/level3/test.txt' });
+            newFile = File.findOne({ name: '/copylevel/copy.txt' });
+        });
+        it( 'the old file should still exist', () => {
+            expect( oldFile ).to.not.be.null();
+        });
+        it( 'the file should exist at the new path with the same guid', () => {
+            expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
+        });
     });
 
     describe( 'move', () => {
