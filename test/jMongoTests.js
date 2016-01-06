@@ -24,15 +24,15 @@ chai.use( chaiaspromised );
 /*
 TOP LEVEL OPERATIONS TO MONGO OPERATIONS
 read -> verify (permissions),
-search -> search (meta AND file), verify (permissions);
+search -> search (meta AND file), verify (permissions by read);
 inspect -> ?,
 write -> verify (permissions), create (meta), create permissions), create (file),
-copy -> verify (permissions), create (meta), create (permissions), create (file),
-update -> verify (permissions) and update(file),
+copy -> verify (permissions), create (file)
+trueCopy -> verify (permissions), create (meta), create (permissions), create (file),
+updatePermissions -> verify (permissions) and update(permissions),
 move -> verify (permissions), create (file), destroy (file),
-rename -> verify (permissions), update (file),
+rename -> move
 destroy -> verify (permissions), destroy (file), POSSIBLY: destroy (meta)
-// link -> verify (permissions), create (file)
 
 
 /* GENERATORS
@@ -361,14 +361,15 @@ describe( 'mongo top-level operations', () => {
         });
     });
 
-    describe( 'update', () => {
+    // we don't need an update test, because we will either be updating the permissions or the file path
+    describe( 'updatePermissions', () => {
 
     });
 
     describe( 'copy', () => {
         let oldFile;
         let newFile;
-        // userid, old path, new path
+        // userId, old path, new path
         before(() => {
             mongo.copy( userId, '/level1/level2/level3/test.txt', '/copylevel/copy.txt' );
             oldFile = File.findOne({ name: '/level1/level2/level3/test.txt' });
@@ -377,16 +378,27 @@ describe( 'mongo top-level operations', () => {
         it( 'the old file should still exist', () => {
             expect( oldFile ).to.not.be.null();
         });
-        it( 'the file should exist at the new path with the same guid', () => {
+        it( 'the file should exist at the new path with the same metaDataId', () => {
             expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
         });
     });
 
     describe( 'move', () => {
-    });
-
-    describe( 'rename', () => {
-
+        // userId, old path, new path
+        const oldFileMetaId = File.findOne({ name: '/level1/level2/level3/test.txt' }).metaDataId;
+        let oldFile;
+        let newFile;
+        before(() => {
+            mongo.move( userId, '/level1/level2/level3/test.txt', '/movelevel/move.txt' );
+            oldFile = File.findOne({ name: '/level1/level2/level3/test.txt' });
+            newFile = File.findOne({ name: '/copylevel/copy.txt' });
+        });
+        it( 'the old file should not exist', () => {
+            expect( oldFile ).to.be.null();
+        });
+        it( 'the file should exist at the new path with the same metaDataId', () => {
+            expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
+        });
     });
 
     describe( 'destroy', () => {
