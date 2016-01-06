@@ -13,10 +13,10 @@ const sinonchai = require( 'sinon-chai' );
 // const faker = require( 'faker' );
 const mime = require( 'mime' );
 const mongoose = require( 'mongoose' );
-const Meta = require( '/schemas/metaDataSchema.js' );
-const File = require( '/schemas/fileSchema.js' );
-const Permissions = require( '/schemas/permissionSchema.js' );
-const mongo = require( '../src/mongo.js' );
+const Meta = require( '/src/schemas/metaDataSchema.js' );
+const File = require( '/src/schemas/fileSchema.js' );
+const Permissions = require( '/src/schemas/permissionSchema.js' );
+const mongo = require( '/src/mongo.js' );
 
 chai.use( sinonchai );
 chai.use( chaiaspromised );
