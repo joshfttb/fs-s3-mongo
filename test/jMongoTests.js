@@ -23,7 +23,6 @@ chai.use( chaiaspromised );
 
 /*
 TOP LEVEL OPERATIONS TO MONGO OPERATIONS
-(verify always includes return guid or fail)
 read -> verify,
 search -> search, verify
 inspect -> ?,
@@ -252,20 +251,109 @@ describe( 'mongo top-level operations', () => {
 
 
     describe( 'search', () => {
-        it( 'should find a file by various fields', () => {
-
+        describe( 'should find a file by various fields', () => {
+        /* search operations
+            name -> file
+            size -> meta
+            created -> meta
+            modified -> meta
+            user -> file
+            group -> permissions
+        */
+        // by file name
+            it( 'should find files by name', () => {
+                expect( mongo.search({ name: 'test.txt' })).not.to.be.null();
+            });
+        // by size
+            it( 'should find files by size', () => {
+                expect( mongo.search({ size: { min: 11111111, max: 22222222 } })).not.to.be.null();
+            });
+        // created by date (min / max, use moment?)
+            it( 'should find files by date created', () => {
+                expect( mongo.search({
+                    created: {
+                        before: Date.now(),
+                        after: Date.now() - 60000,
+                    },
+                })).not.to.be.null();
+            });
+        // verified by date (min / max, use moment?)
+            it( 'should find files by date modified', () => {
+                expect( mongo.search({
+                    modified: {
+                        before: Date.now(),
+                        after: Date.now() - 60000,
+                    },
+                })).not.to.be.null();
+            });
+        // by user
+            it( 'should find files by user', () => {
+                expect( mongo.search({ userId: 'test.txt' })).not.to.be.null();
+            });
         });
     });
 
     describe( 'verify', () => {
+        const rejectUser = mongoose.Types.ObjectId();
+        it( 'should allow reading a file with correct permissions', () => {
+            expect( mongo.verify( userId, 'read', '/level1/level2/level3/test.txt' )).to.be.fulfilled();
+        });
+        it( 'should reject reading a file with correct permissions', () => {
+            expect( mongo.verify( rejectUser, 'read', '/level1/level2/level3/test.txt' ))
+                .to.be.rejectedWith( 'user does not have read permissions on this object' );
+        });
+        it( 'should allow updating a file with correct permissions', () => {
+            expect( mongo.verify( userId, 'update', '/level1/level2/level3/test.txt' )).to.be.fulfilled();
+        });
+        it( 'should reject updating a file with correct permissions', () => {
+            expect( mongo.verify( rejectUser, 'update', '/level1/level2/level3/test.txt' ))
+                .to.be.rejectedWith( 'user does not have write permissions on this object' );
+        });
+        it( 'should allow destroying a file with correct permissions', () => {
+            expect( mongo.verify( userId, 'destroy', '/level1/level2/level3/test.txt' )).to.be.fulfilled();
+        });
+        it( 'should reject destroying a file with correct permissions', () => {
+            expect( mongo.verify( rejectUser, 'destroy', '/level1/level2/level3/test.txt' ))
+                .to.be.rejectedWith( 'user does not have write permissions on this object' );
+        });
+        /*
+        it( 'should allow changing permissions on a file with correct permissions', () => {
+            expect( mongo.verify( userId, 'updatePermissions', '/level1/level2/level3.test.txt' )).to.be.fulfilled();
+        });
+        it( 'should reject changing permissions on a file with incorrect permissions', () => {
+            expect( mongo.verify( rejectUser, 'updatePermissions', '/level1/level2/level3/test.txt' ))
+                .to.be.rejectedWith( 'user does not have write permissions on this object' );
+        });
+        */
+        it( 'should allow insertion of a file with correct permissions on the parent folder', () => {
+            expect( mongo.verify( userId, 'write', '/level1/level2/permissions1.txt' )).to.be.fulfilled();
+        });
+        it( 'should reject insertion of a file with correct permissions on the parent folder', () => {
+            expect( mongo.verify( rejectUser, 'write', '/level1/level2/permissions2.txt' ))
+                .to.be.rejectedWith( 'user does not have write permissions on this object' );
+        });
+        // should not treat a file as a folder
+        it( 'not allow insertion of a file into another file', () => {
+            expect( mongo.verify( userId, 'write', '/level1/level2/level3/test.txt/nestedTest.txt' ))
+                .to.be.rejectedWith( 'tried to add object to file' );
+        });
+        // should not create a duplicate file
+        it( 'not allow insertion of a file into another file', () => {
+            expect( mongo.verify( userId, 'write', '/level1/level2/level3/test.txt' ))
+                .to.be.rejectedWith( 'object already exists at that path' );
+        });
     });
 
     describe( 'create', () => {
+
     });
 
     describe( 'update', () => {
+
     });
 
     describe( 'destroy', () => {
+        // if meta has multiple files, should only destroy the file and permission record
+        // if meta has no other files, should remove meta record
     });
 });
