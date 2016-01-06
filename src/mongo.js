@@ -1,9 +1,9 @@
 'use strict';
 
 const utils = require( './utils.js' );
-const Meta = require( '/src/schemas/metaDataSchema.js' );
-const File = require( '/src/schemas/fileSchema.js' );
-const Permissions = require( '/src/schemas/permissionSchema.js' );
+const Meta = require( './schemas/metaDataSchema.js' );
+const File = require( './schemas/fileSchema.js' );
+const Permissions = require( './schemas/permissionSchema.js' );
 
 /* eslint no-unused-vars: 0 */
 
