@@ -41,7 +41,7 @@ module.exports.verify = ( user, operation, path ) => {
         fileId = lastParent + '.fileId';
 
         // see if this is a folder
-        if ( !File.find({ $and: [{ _id: fileId }, { type: 'folder' }] }).fetch()) {
+        if ( !File.find({ $and: [{ _id: fileId }, { type: 'folder' }] })) {
             folderFail = true;
         }
 
@@ -50,7 +50,7 @@ module.exports.verify = ( user, operation, path ) => {
         lastParent += '.children';
 
         // run the test
-        isParent = File.find({ [lastParent]: { $exists: true, $ne: null } }).fetch();
+        isParent = File.find({ [lastParent]: { $exists: true, $ne: null } });
 
         // if there's another level and this was not a folder, we have a problem
         if ( isParent && folderFail ) {
@@ -74,7 +74,7 @@ module.exports.verify = ( user, operation, path ) => {
     }
 
     // get permissions for the user on the last parent
-    permissionsArray = File.find({ _id: fileId }).fetch();
+    permissionsArray = File.find({ _id: fileId });
     permissionsArray.forEach(( item ) => {
         if ( user === item.userId ) {
             permissions = item.permissions;
