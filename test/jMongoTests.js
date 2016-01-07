@@ -2,6 +2,7 @@
 
 /* eslint-env mocha */
 /* eslint new-cap: 0 */
+/* eslint no-unused-expressions: 0 */
 // todo: remove this after finishing tests
 /* eslint no-unused-vars: 0 */
 
@@ -155,7 +156,7 @@ module.exports = {
  ***/
 // HARDCODED FIXTURE VERSION
 // create the path
-const path = ['level1', 'level2', 'level3', test.txt];
+const path = ['level1', 'level2', 'level3', 'test.txt'];
 // stub the userid
 const userId = mongoose.Types.ObjectId();
 
@@ -232,10 +233,12 @@ describe( 'mongo top-level operations', () => {
     afterEach( function afterEach() {
         // make an array of all test meta ids
         let ids;
-        ids = Meta.find({ guid: 'TESTDATA' }).fetch();
-        ids = ids.map( function mapId( item ) {
-            return item._id;
-        });
+        Meta.find({ guid: 'TESTDATA' })
+            .then(( docs ) => {
+                ids = docs.map( function mapId( item ) {
+                    return item._id;
+                });
+            });
         // now remove all the things
         Meta.remove({ _id: { $in: ids } });
         Permissions.remove({ resourceId: { $in: ids } });
@@ -255,11 +258,11 @@ describe( 'mongo top-level operations', () => {
         */
         // by file name
             it( 'should find files by name', () => {
-                expect( mongo.search({ name: 'test.txt' })).not.to.be.null();
+                expect( mongo.search({ name: 'test.txt' })).not.to.be.null;
             });
         // by size
             it( 'should find files by size', () => {
-                expect( mongo.search({ size: { min: 11111111, max: 22222222 } })).not.to.be.null();
+                expect( mongo.search({ size: { min: 11111111, max: 22222222 } })).not.to.be.null;
             });
         // created by date (min / max, use moment?)
             it( 'should find files by date created', () => {
@@ -268,7 +271,7 @@ describe( 'mongo top-level operations', () => {
                         before: Date.now(),
                         after: Date.now() - 60000,
                     },
-                })).not.to.be.null();
+                })).not.to.be.null;
             });
         // verified by date (min / max, use moment?)
             it( 'should find files by date modified', () => {
@@ -277,11 +280,11 @@ describe( 'mongo top-level operations', () => {
                         before: Date.now(),
                         after: Date.now() - 60000,
                     },
-                })).not.to.be.null();
+                })).not.to.be.null;
             });
         // by user
             it( 'should find files by user', () => {
-                expect( mongo.search({ userId })).not.to.be.null();
+                expect( mongo.search({ userId })).not.to.be.null;
             });
             it( 'should not return results user does not have access to', () => {
 
@@ -343,21 +346,21 @@ describe( 'mongo top-level operations', () => {
                 });
         });
         it( 'should create the file and related records', () => {
-            expect( fileRec ).to.not.be.null();
+            expect( fileRec ).to.not.be.null;
             expect( Meta.findOne(
                 { _id: fileRec.metaDataId }
-            )).to.not.be.null();
+            )).to.not.be.null;
             expect( Permissions.findOne(
                 { resourceId: fileRec.metaDataId }
-            )).to.not.be.null();
+            )).to.not.be.null;
         });
         it( 'should create the in-between folders', () => {
             expect( File.findOne(
                 { name: '/level1/l2branch/' }
-            )).to.not.be.null();
+            )).to.not.be.null;
             expect( File.findOne(
                 { name: '/level1/l2branch/l3branch' }
-            )).to.not.be.null();
+            )).to.not.be.null;
         });
     });
 
@@ -376,7 +379,7 @@ describe( 'mongo top-level operations', () => {
             newFile = File.findOne({ name: '/copylevel/copy.txt' });
         });
         it( 'the old file should still exist', () => {
-            expect( oldFile ).to.not.be.null();
+            expect( oldFile ).to.not.be.null;
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
             expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
@@ -394,7 +397,7 @@ describe( 'mongo top-level operations', () => {
             newFile = File.findOne({ name: '/copylevel/copy.txt' });
         });
         it( 'the old file should not exist', () => {
-            expect( oldFile ).to.be.null();
+            expect( oldFile ).to.be.null;
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
             expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
@@ -418,15 +421,15 @@ describe( 'mongo top-level operations', () => {
         // if meta has multiple files, should only destroy file record
         it( 'should only destroy the file record and intervening records', () => {
             mongo.destroy( userId, '/level1/branch1/linkedrecord.txt' );
-            expect( File.findOne({ name: '/level1/branch1/linkedrecord.txt' })).to.be.null();
-            expect( File.findOne({ name: '/level1/branch1/' })).to.be.null();
-            expect( Meta.findOne({ _id: fileRec.metaDataId })).to.not.be.null();
+            expect( File.findOne({ name: '/level1/branch1/linkedrecord.txt' })).to.be.null;
+            expect( File.findOne({ name: '/level1/branch1/' })).to.be.null;
+            expect( Meta.findOne({ _id: fileRec.metaDataId })).to.not.be.null;
         });
         // if meta has no other files, should remove meta record
         it( 'should also destroy the meta if there are no other file entries for one meta', () => {
             mongo.destroy( userId, '/level1/level2/level3/test.txt' );
-            expect( File.findOne({ name: '/level1/level2/level3/test.txt' })).to.be.null();
-            expect( Meta.findOne({ _id: fileRec.metaDataId })).to.be.null();
+            expect( File.findOne({ name: '/level1/level2/level3/test.txt' })).to.be.null;
+            expect( Meta.findOne({ _id: fileRec.metaDataId })).to.be.null;
         });
     });
 });
