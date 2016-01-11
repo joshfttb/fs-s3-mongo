@@ -329,7 +329,7 @@ describe( 'mongo top-level operations', () => {
                 .to.be.rejectedWith( 'tried to add object to file' );
         });
         // should not create a duplicate file
-        it( 'not allow insertion of a file into another file', () => {
+        it( 'not allow insertion of a duplicate file', () => {
             expect( mongo.verify( userId, '/level1/level2/level3/test.txt', 'write' ))
                 .to.be.rejectedWith( 'object already exists at that path' );
         });
