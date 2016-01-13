@@ -5,6 +5,12 @@
 const mongo = require( './mongo.js' );
 const s3 = require( './s3.js' );
 const utils = require( './utils.js' );
+const Meta = require( './schemas/metaDataSchema.js' );
+const File = require( './schemas/fileSchema.js' );
+
+module.exports.schema.meta = Meta;
+module.exports.schema.file = File;
+
 
 module.exports.read = function read( path ) {
     return s3.read( path )

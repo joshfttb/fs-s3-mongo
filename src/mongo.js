@@ -6,10 +6,6 @@ const utils = require( './utils.js' );
 const Meta = require( './schemas/metaDataSchema.js' );
 const File = require( './schemas/fileSchema.js' );
 
-module.exports.schema.meta = Meta;
-module.exports.schema.file = File;
-
-
 module.exports.search = function search( pathObj ) {
     // TODO: hit mongo and search
     return Promise.reject( 'NOT_IMPLEMENTED' );
