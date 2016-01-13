@@ -5,7 +5,9 @@
 const utils = require( './utils.js' );
 const Meta = require( './schemas/metaDataSchema.js' );
 const File = require( './schemas/fileSchema.js' );
-const Schema = require( './schemas/schema.js' );
+
+module.exports.schema.meta = Meta;
+module.exports.schema.file = File;
 
 
 module.exports.search = function search( pathObj ) {
