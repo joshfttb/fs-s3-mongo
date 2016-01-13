@@ -8,9 +8,10 @@ const utils = require( './utils.js' );
 const Meta = require( './schemas/metaDataSchema.js' );
 const File = require( './schemas/fileSchema.js' );
 
-module.exports.schema.meta = Meta;
-module.exports.schema.file = File;
-
+module.exports.schema = {
+    file: File,
+    meta: Meta,
+};
 
 module.exports.read = function read( path ) {
     return s3.read( path )
