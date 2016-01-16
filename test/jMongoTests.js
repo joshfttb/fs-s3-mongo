@@ -156,7 +156,7 @@ module.exports = {
  ***/
 // HARDCODED FIXTURE VERSION
 // create the path
-const path = ['level1', 'level2', 'level3', 'test.txt'];
+const path = [ 'level1', 'level2', 'level3', 'test.txt' ];
 // stub the userid
 const userId = mongoose.Types.ObjectId();
 
@@ -289,49 +289,6 @@ describe( 'mongo top-level operations', () => {
             it( 'should not return results user does not have access to', () => {
 
             });
-        });
-    });
-
-    describe( 'verify', () => {
-        // userId, path, operation
-        const rejectUser = mongoose.Types.ObjectId();
-        it( 'should allow reading a file with correct permissions', () => {
-            expect( mongo.verify( userId, '/level1/level2/level3/test.txt', 'read' )).to.be.fulfilled();
-        });
-        it( 'should reject reading a file with correct permissions', () => {
-            expect( mongo.verify( rejectUser, '/level1/level2/level3/test.txt', 'read' ))
-                .to.be.rejectedWith( 'user does not have read permissions on this object' );
-        });
-        it( 'should allow updating a file with correct permissions', () => {
-            expect( mongo.verify( userId, '/level1/level2/level3/test.txt', 'update' )).to.be.fulfilled();
-        });
-        it( 'should reject updating a file with correct permissions', () => {
-            expect( mongo.verify( rejectUser, '/level1/level2/level3/test.txt', 'update' ))
-                .to.be.rejectedWith( 'user does not have write permissions on this object' );
-        });
-        it( 'should allow destroying a file with correct permissions', () => {
-            expect( mongo.verify( userId, '/level1/level2/level3/test.txt', 'destroy' )).to.be.fulfilled();
-        });
-        it( 'should reject destroying a file with correct permissions', () => {
-            expect( mongo.verify( rejectUser, '/level1/level2/level3/test.txt', 'destroy' ))
-                .to.be.rejectedWith( 'user does not have write permissions on this object' );
-        });
-        it( 'should allow insertion of a file with correct permissions on the parent folder', () => {
-            expect( mongo.verify( userId, '/level1/level2/permissions1.txt', 'write' )).to.be.fulfilled();
-        });
-        it( 'should reject insertion of a file with correct permissions on the parent folder', () => {
-            expect( mongo.verify( rejectUser, '/level1/level2/permissions2.txt', 'write' ))
-                .to.be.rejectedWith( 'user does not have write permissions on this object' );
-        });
-        // should not treat a file as a folder
-        it( 'not allow insertion of a file into another file', () => {
-            expect( mongo.verify( userId, '/level1/level2/level3/test.txt/nestedTest.txt', 'write' ))
-                .to.be.rejectedWith( 'tried to add object to file' );
-        });
-        // should not create a duplicate file
-        it( 'not allow insertion of a duplicate file', () => {
-            expect( mongo.verify( userId, '/level1/level2/level3/test.txt', 'write' ))
-                .to.be.rejectedWith( 'object already exists at that path' );
         });
     });
 
