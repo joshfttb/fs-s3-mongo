@@ -1,3 +1,4 @@
+
 'use strict';
 
 /* eslint-env mocha */
@@ -5,167 +6,37 @@
 /* eslint no-unused-expressions: 0 */
 // todo: remove this after finishing tests
 /* eslint no-unused-vars: 0 */
+/* eslint no-shadow: 0 */
 
 const chai = require( 'chai' );
 const expect = chai.expect;
 const chaiaspromised = require( 'chai-as-promised' );
 const sinonchai = require( 'sinon-chai' );
-// only needed for dynamic generator
-// const faker = require( 'faker' );
 const mime = require( 'mime' );
 const mongoose = require( 'mongoose' );
-const Meta = require( '../src/schemas/metaDataSchema.js' );
-const File = require( '../src/schemas/fileSchema.js' );
-const Permissions = require( '../src/schemas/permissionSchema.js' );
-const mongo = require( '../src/mongo.js' );
+const brinkbitPermissions = require( 'brinkbit-permissions' );
+const verify = brinkbitPermissions.verify;
+const mongo = require( '../src/index.js' );
+const File = mongo.schema.file;
+const Meta = mongo.schema.meta;
 
 chai.use( sinonchai );
 chai.use( chaiaspromised );
 
-/*
-TOP LEVEL OPERATIONS TO MONGO OPERATIONS
-read -> verify (permissions),
-search -> search (meta AND file), verify (permissions by read);
-inspect -> ?,
-write -> verify (permissions), create (meta), create permissions), create (file),
-copy -> verify (permissions), create (file)
-trueCopy -> verify (permissions), create (meta), create (permissions), create (file),
-updatePermissions -> verify (permissions) and update(permissions),
-move -> verify (permissions), create (file), destroy (file),
-rename -> move
-destroy -> verify (permissions), destroy (file), POSSIBLY: destroy (meta)
-
-
-/* GENERATORS
-const pathGenerator = function pathGenerator( name, type ) {
-    let path = [];
-    const pathDepth = faker.random.number({ min: 1, max: 8 });
-    for ( let i = 0; i < pathDepth; i++ ) {
-        if ( i === pathDepth ) {
-            const filetypes = [
-                'txt',
-                'png',
-                'jpg',
-                'pdf',
-                'css',
-                'html',
-                'mp4',
-            ];
-            path = path.push(
-                name || faker.lorem.words()[0] +
-                '.' +
-                type || faker.random.arrayElement( filetypes )
-            );
-        }
-        else {
-            path = path.push( faker.lorem.words()[0]);
-        }
-    }
-    return path;
-};
-
-const generatePermissions = function generatePermissions( meta, read, write, destroy, manage, userId ) {
-    let permissions;
-    permissions = new Permissions({
-        get resourceType() {
-            let resourceType;
-            if ( meta.mimeType === 'folder' ) {
-                resourceType = 'folder';
-            }
-            else {
-                resourceType = 'file';
-            }
-            return resourceType;
-        },  // project or file/folder and we can easily add additional resource types later
-        resourceId: meta.id, // links to metadata id or project id
-        appliesTo: 'user', // 'user', 'group', 'public'
-        userId,
-        groupId: null, // if applies to group
-        read,
-        write,
-        destroy,
-        // share: [String], add additional user with default permissions for collaboration
-        manage, // update/remove existing permissions on resource
-    });
-    permissions.save();
-};
-
-const generateMeta = function generateMeta( name, type, read, write, destroy, manage, userId ) {
-    let meta;
-    let userIdVar;
-    let parent;
-    userIdVar = userId || mongoose.Types.ObjectId();
-    pathGenerator( name, type ).forEach(( value, index, array ) => {
-        meta = new Meta({
-            guid: 'TESTDATA', // s3 guid
-            get mimeType() {
-                let mimeVar;
-                if ( index === array.length ) {
-                    mimeVar = mime.lookup( value.split( '.' ).pop());
-                }
-                else {
-                    mimeVar = 'folder';
-                }
-                return mimeVar;
-            },
-            size: faker.random.number({ min: 11111111, max: 9999999999 }), // in bytes
-            dateCreated: faker.date.past(), // https://docs.mongodb.org/v3.0/reference/method/Date/
-            lastModified: faker.date.recent(), // https://docs.mongodb.org/v3.0/reference/method/Date/
-            get children() {
-                if ( index !== array.length ) {
-                    return array[index + 1];
-                }
-            },
-        });
-        meta.save();
-        generatePermissions( meta, true, true, true, true, userId );
-        parent = array.join( '/' ).slice( 0, index - 1 );
-    });
-    return { metaId: meta.id, mimeType: meta.mimeType, parent, userId: userIdVar };
-};
-
-
-const generateFile = function generateFile( meta, name ) {
-    let file;
-    file = new File({
-        metaDataId: meta.metaId, // link to METADATA
-        userId: meta.userId, // link to User Collection
-        get name() {
-            let nameVar;
-            if ( meta.mimeType === 'folder' ) {
-                nameVar = pathGenerator( name );
-                nameVar += '/';
-            }
-            else {
-                nameVar = pathGenerator( name, mime.extension( meta.mimeType ));
-            }
-            return nameVar;
-        },
-        parent: meta.parent,  // '/top/mid/'
-    });
-    file.save();
-    return file;
-};
-
-// export our test functions jik we need them elsewhere
-module.exports = {
-    generateMeta,
-    generatePermissions,
-    generateFile,
-};
- ***/
 // HARDCODED FIXTURE VERSION
 // create the path
 const path = [ 'level1', 'level2', 'level3', 'test.txt' ];
 // stub the userid
-const userId = mongoose.Types.ObjectId();
+const acceptUser = new mongoose.Types.ObjectId();
+const rejectUser = new mongoose.Types.ObjectId();
+
 
 // create the meta and permissions
-const insertFixture = function insertFixture( pathVar, userIdVar ) {
+const insertFixture = function insertFixture( pathVar ) {
     // for each level:
-    pathVar.forEach(( value, index, array ) => {
+    const promises = pathVar.map(( value, index, array ) => {
         // create the meta
-        const meta = new Meta({
+        let meta = new Meta({
             guid: 'TESTDATA', // s3 guid
             get mimeType() {
                 let mimeVar;
@@ -186,66 +57,144 @@ const insertFixture = function insertFixture( pathVar, userIdVar ) {
                 }
             },
         });
-        meta.save();
-        // create the permission record
-        const permissions = new Permissions({
-            get resourceType() {
-                let resourceType;
-                if ( meta.mimeType === 'folder' ) {
-                    resourceType = 'folder';
-                }
-                else {
-                    resourceType = 'file';
-                }
-                return resourceType;
-            },  // project or file/folder and we can easily add additional resource types later
-            resourceId: meta.id, // links to metadata id or project id
-            appliesTo: 'user', // 'user', 'group', 'public'
-            userIdVar,
-            groupId: null, // if applies to group
-            read: true,
-            write: true,
-            destroy: true,
-            // share: [String], add additional user with default permissions for collaboration
-            manage: true, // update/remove existing permissions on resource
-        });
-        permissions.save();
-        // create the file record
-        const file = new File({
-            metaDataId: meta.id, // link to METADATA
-            userId: userIdVar, // link to User Collection
-            get name() {
-                return array.join( '/' ).slice( 0, index );
-            },
-            get parent() {
-                return array.join( '/' ).slice( 0, index - 1 );
-            },
-        });
-        file.save();
+        return meta.save()
+            .then(( metaObj ) => {
+                // overwrite meta with more meta
+                meta = metaObj;
+                // create the permission record for the good user
+                const goodPermissions = new Permissions({
+                    get resourceType() {
+                        let resourceType;
+                        if ( meta.mimeType === 'folder' ) {
+                            resourceType = 'folder';
+                        }
+                        else {
+                            resourceType = 'file';
+                        }
+                        return resourceType;
+                    },  // project or file/folder and we can easily add additional resource types later
+                    resourceId: meta.id, // links to metadata id or project id
+                    appliesTo: 'user', // 'user', 'group', 'public'
+                    userId: acceptUser,
+                    groupId: null, // if applies to group
+                    read: true,
+                    write: true,
+                    destroy: true,
+                    // share: [String], add additional user with default permissions for collaboration
+                    manage: true, // update/remove existing permissions on resource
+                });
+                const badPermissions = new Permissions({
+                    get resourceType() {
+                        let resourceType;
+                        if ( meta.mimeType === 'folder' ) {
+                            resourceType = 'folder';
+                        }
+                        else {
+                            resourceType = 'file';
+                        }
+                        return resourceType;
+                    },  // project or file/folder and we can easily add additional resource types later
+                    resourceId: meta.id, // links to metadata id or project id
+                    appliesTo: 'user', // 'user', 'group', 'public'
+                    userId: rejectUser,
+                    groupId: null, // if applies to group
+                    read: false,
+                    write: false,
+                    destroy: false,
+                    // share: [String], add additional user with default permissions for collaboration
+                    manage: false, // update/remove existing permissions on resource
+                });
+                // create the good file record
+                const goodFile = new File({
+                    metaDataId: meta.id, // link to METADATA
+                    userId: acceptUser, // link to User Collection
+                    get name() {
+                        let name;
+                        if ( array.length === index + 1 ) {
+                            name = array.join( '/' );
+                        }
+                        else {
+                            name = array.slice( 0, index + 1 ).join( '/' ) + '/';
+                        }
+                        return name;
+                    },
+                    get parent() {
+                        let parent;
+                        parent = array.slice( 0, index ).join( '/' );
+                        if ( parent ) parent += '/';
+                        return parent;
+                    },
+                });
+                const badFile = new File({
+                    metaDataId: meta.id, // link to METADATA
+                    userId: rejectUser, // link to User Collection
+                    get name() {
+                        let name;
+                        if ( array.length === index + 1 ) {
+                            name = array.join( '/' );
+                        }
+                        else {
+                            name = array.slice( 0, index + 1 ).join( '/' ) + '/';
+                        }
+                        return name;
+                    },
+                    get parent() {
+                        let parent;
+                        parent = array.slice( 0, index ).join( '/' );
+                        if ( parent ) parent += '/';
+                        return parent;
+                    },
+                });
+                return Promise.all([
+                    goodPermissions.save(),
+                    badPermissions.save(),
+                    goodFile.save(),
+                    badFile.save(),
+                ]);
+            })
+            .catch(( e ) => {
+                return Promise.reject( e );
+            });
     });
+    return Promise.all( promises );
 };
 
+
 describe( 'mongo top-level operations', () => {
-    beforeEach( function beforeEach() {
-        insertFixture( path, userId );
+    beforeEach( function beforeEach( done ) {
+        return insertFixture( path )
+            .then(() => {
+                done();
+            })
+            .catch(( e ) => {
+                throw ( e );
+            });
     });
 
-    afterEach( function afterEach() {
+
+    afterEach( function afterEach( done ) {
         // make an array of all test meta ids
         let ids;
-        Meta.find({ guid: 'TESTDATA' })
+        Meta.find({ guid: 'TESTDATA' }).exec()
             .then(( docs ) => {
                 ids = docs.map( function mapId( item ) {
                     return item._id;
                 });
+                const p1 = Meta.remove({ _id: { $in: ids } }).exec();
+                const p2 = Permissions.remove({ resourceId: { $in: ids } }).exec();
+                const p3 = File.remove({ metaDataId: { $in: ids } }).exec();
+                // now remove all the things
+                return Promise.all([ p1, p2, p3 ]);
+            })
+            .then(() => {
+                done();
+            })
+            .catch(( e ) => {
+                throw ( e );
             });
-        // now remove all the things
-        Meta.remove({ _id: { $in: ids } });
-        Permissions.remove({ resourceId: { $in: ids } });
-        File.remove({ metaDataId: { $in: ids } });
     });
 
-
+    const userId = acceptUser.toString();
     describe( 'search', () => {
         describe( 'should find a file by various fields', () => {
         /* search operations
