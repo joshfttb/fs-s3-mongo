@@ -26,6 +26,9 @@ documentation
 node_modules
 bower_components
 
+# Linting
+.eslintrc
+
 # Compiled files
 *.min.js
 *.map
