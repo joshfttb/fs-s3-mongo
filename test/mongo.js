@@ -197,97 +197,129 @@ describe( 'mongo-wrapper', () => {
     const userId = acceptUser.toString();
     describe( 'search', () => {
         describe( 'should find a file by various fields', () => {
-        /* search operations
+        /* search options
             name -> file
             size -> meta
             created -> meta
             modified -> meta
             user -> file
-            group -> permissions
         */
-        // by file name
+
+            // by file name
+            // todo: change this
+            const numFiles = 1;
+
             it( 'should find files by name', () => {
-                return expect( mongo.search({ name: 'test.txt' })).not.to.be.null;
+                const searchObj = { name: 'test.txt' };
+
+                return expect( mongo.search( searchObj )).to.be.fulfilled
+                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
-        // by size
+
+            // by size
             it( 'should find files by size', () => {
-                return expect( mongo.search({ size: { min: 11111111, max: 22222222 } })).not.to.be.null;
+                const searchObj = { size: { min: 11111111, max: 22222222 } };
+
+                return expect( mongo.search( searchObj )).to.be.fulfilled
+                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
-        // created by date (min / max, use moment?)
+
+            // created by date (min / max, use moment?)
             it( 'should find files by date created', () => {
-                return expect( mongo.search({
-                    created: {
-                        before: Date.now(),
-                        after: Date.now() - 60000,
-                    },
-                })).not.to.be.null;
+                const searchObj = { created: { before: Date.now(), after: Date.now() - 60000 } };
+
+                return expect( mongo.search( searchObj )).to.be.fulfilled
+                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
-        // verified by date (min / max, use moment?)
+
+            // verified by date (min / max, use moment?)
             it( 'should find files by date modified', () => {
-                return expect( mongo.search({
-                    modified: {
-                        before: Date.now(),
-                        after: Date.now() - 60000,
-                    },
-                })).not.to.be.null;
+                const searchObj = { modified: { before: Date.now(), after: Date.now() - 60000 } };
+
+                return expect( mongo.search( searchObj )).to.be.fulfilled
+                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
-        // by user
+
+            // by user
             it( 'should find files by user', () => {
-                return expect( mongo.search({ userId })).not.to.be.null;
-            });
-            it( 'should not return results user does not have access to', () => {
+                const searchObj = userId;
 
+                return expect( mongo.search( searchObj )).to.be.fulfilled
+                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
+            });
+
+            it( 'should find and sort when given a sort object', () => {
+                const searchObj = { name: 'test.txt' };
+                const sortObj = { name: 1 };
+
+                // todo: need to make the data to support this
+                const files = [];
+
+                return expect( mongo.search( searchObj, sortObj )).to.be.fulfilled
+                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.deep.equal( files );
+            });
+
+            it( 'should resolve with an empty array when given a valid search object that doesn\'t match anything', () => {
+                const searchObj = { name: 'test.txt' };
+                return expect( mongo.search( searchObj )).to.be.fulfilled
+                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( 0 );
             });
         });
     });
 
-    describe( 'getGUID', () => {
-    });
-
-    describe( 'insert', () => {
+    describe( 'create', () => {
         // userId, path, guid
+
         let fileRec;
-        before(( done ) => {
-            mongo.create( userId, '/level1/l2branch/l3branch/created.txt', 'TESTDATA' )
-                .then(() => {
-                    fileRec = File.findOne({ name: '/level1/l2branch/l3branch/created.txt' });
-                    done();
-                });
+
+        it( 'should create the file record return SUCCESS on a successful creation', () => {
+            const user = userId;
+            const fullPath = '/level1/l2branch/l3branch/created.txt';
+            const guid = 'TESTDATA';
+
+            fileRec = () => {
+                return expect( mongo.create( user, fullPath, guid )).to.be.fulfilled
+                    .and.to.not.be.null
+                    .and.eventually.have.property( 'status', 'SUCCESS' );
+            };
         });
+
         it( 'should create the file and related records', () => {
             return Promise.all([
-                expect( fileRec ).to.not.be.null,
-                expect( Meta.findOne({ _id: fileRec.metaDataId })).to.not.be.null,
-                expect( Permissions.findOne({ resourceId: fileRec.metaDataId })).to.not.be.null,
+                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.not.be.null,
+                expect( Permissions.findOne({ resourceId: fileRec.metaDataId }).exec()).to.not.be.null,
             ]);
         });
         it( 'should create the in-between folders', () => {
             return Promise.all([
-                expect( File.findOne({ name: '/level1/l2branch/' })).to.not.be.null,
-                expect( File.findOne({ name: '/level1/l2branch/l3branch' })).to.not.be.null,
+                expect( File.findOne({ name: '/level1/l2branch/' }).exec()).to.not.be.null,
+                expect( File.findOne({ name: '/level1/l2branch/l3branch' }).exec()).to.not.be.null,
             ]);
         });
     });
 
     // we don't need an update test, because we will either be updating the permissions or the file path
-    describe( 'updatePermissions', () => {
-
-    });
 
     describe( 'copy', () => {
         let oldFile;
-        let newFile;
         // userId, old path, new path
+        const oldPath = '/level1/level2/level3/test.txt';
+        const newPath = '/copylevel/copy.txt';
         before(() => {
-            mongo.copy( userId, '/level1/level2/level3/test.txt', '/copylevel/copy.txt' );
-            oldFile = File.findOne({ name: '/level1/level2/level3/test.txt' });
-            newFile = File.findOne({ name: '/copylevel/copy.txt' });
+            mongo.copy( userId, oldPath, newPath );
+        });
+        it( 'should respond with success on a successful copy', () => {
+            return expect( mongo.copy( oldPath, newPath )).to.be.fulfilled
+                .and.eventually.have.property( 'status', 'SUCCESS' );
         });
         it( 'the old file should still exist', () => {
-            return expect( oldFile ).to.not.be.null;
+            oldFile = () => {
+                return expect( File.findOne({ name: '/level1/level2/level3/test.txt' }).exec()).to.not.be.null;
+            };
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
-            return expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
+            return expect( File.findOne({ name: '/copylevel/copy.txt' }).exec()).to.be.fulfilled
+                .and.eventually.have.property( 'metaDataId', oldFile.metaDataId );
         });
     });
 
@@ -307,6 +339,9 @@ describe( 'mongo-wrapper', () => {
         it( 'the file should exist at the new path with the same metaDataId', () => {
             return expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
         });
+    });
+
+    describe( 'rename', () => {
     });
 
     describe( 'destroy', () => {
@@ -342,34 +377,6 @@ describe( 'mongo-wrapper', () => {
         });
     });
 
-    it( 'should resolve with an array of resources when given a valid search object', () => {
-        const searchObj = { id: 12345 };
-
-        // TODO: Figure out proper number
-        const numFiles = 4;
-
-        return expect( mongo.search( searchObj )).to.be.fulfilled
-            .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
-    });
-
-    it( 'should resolve with an array of sorted resources when given a search object and sorting parameters', () => {
-        const searchObj = { id: 12345 };
-        const sorting = 'alphabetical';
-
-        // TODO: Figure out files
-        const files = [ 'a.txt', 'b.txt', 'c.gif' ];
-
-        return expect( mongo.search( searchObj, sorting )).to.be.fulfilled
-            .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.deep.equal( files );
-    });
-
-    it( 'should resolve with an empty array when given a valid search object that doesn\'t match anything', () => {
-        const searchObj = { id: null };
-
-        return expect( mongo.search( searchObj )).to.be.fulfilled
-            .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( 0 );
-    });
-
     it( 'should resolve with SUCCESS when updating with a valid search object and update object', () => {
         const searchObj = { id: 12345 };
         const updateObj = { metaData: 'someData' };
@@ -378,31 +385,11 @@ describe( 'mongo-wrapper', () => {
             .and.eventually.have.property( 'status', 'SUCCESS' );
     });
 
-    it( 'should reject with 409/invalid resource attempting to update with an invalid object', () => {
-        const searchObj = { id: null };
-        const updateObj = { metaData: 'someData' };
-
-        return expect( mongo.update( searchObj, updateObj )).to.be.rejected
-            .and.eventually.deep.equal({
-                code: 404,
-                message: 'Resource does not exist.',
-            });
-    });
 
     it( 'should resolve with SUCCESS when deleting with a valid search object', () => {
         const searchObj = { id: 12345 };
 
         return expect( mongo.destroy( searchObj )).to.be.fulfilled
             .and.eventually.have.property( 'status', 'SUCCESS' );
-    });
-
-    it( 'should reject with 409/invalid resource attempting to delete with an invalid object', () => {
-        const searchObj = { id: 12345 };
-
-        return expect( mongo.destroy( searchObj )).to.be.rejected
-            .and.eventually.deep.equal({
-                code: 404,
-                message: 'Resource does not exist.',
-            });
     });
 });
