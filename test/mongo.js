@@ -14,8 +14,6 @@ const chaiaspromised = require( 'chai-as-promised' );
 const sinonchai = require( 'sinon-chai' );
 const mime = require( 'mime' );
 const mongoose = require( 'mongoose' );
-const brinkbitPermissions = require( 'brinkbit-permissions' );
-const verify = brinkbitPermissions.verify;
 const mongo = require( '../src/index.js' );
 const File = mongo.schema.file;
 const Meta = mongo.schema.meta;
@@ -27,16 +25,14 @@ chai.use( chaiaspromised );
 // create the path
 const path = [ 'level1', 'level2', 'level3', 'test.txt' ];
 // stub the userid
-const acceptUser = new mongoose.Types.ObjectId();
-const rejectUser = new mongoose.Types.ObjectId();
-
+const userId = new mongoose.Types.ObjectId();
 
 // create the meta and permissions
 const insertFixture = function insertFixture( pathVar ) {
     // for each level:
     const promises = pathVar.map(( value, index, array ) => {
         // create the meta
-        let meta = new Meta({
+        const meta = new Meta({
             guid: 'TESTDATA', // s3 guid
             get mimeType() {
                 let mimeVar;
@@ -58,56 +54,12 @@ const insertFixture = function insertFixture( pathVar ) {
             },
         });
         return meta.save()
-            .then(( metaObj ) => {
+            .then(( meta ) => {
                 // overwrite meta with more meta
-                meta = metaObj;
-                // create the permission record for the good user
-                const goodPermissions = new Permissions({
-                    get resourceType() {
-                        let resourceType;
-                        if ( meta.mimeType === 'folder' ) {
-                            resourceType = 'folder';
-                        }
-                        else {
-                            resourceType = 'file';
-                        }
-                        return resourceType;
-                    },  // project or file/folder and we can easily add additional resource types later
-                    resourceId: meta.id, // links to metadata id or project id
-                    appliesTo: 'user', // 'user', 'group', 'public'
-                    userId: acceptUser,
-                    groupId: null, // if applies to group
-                    read: true,
-                    write: true,
-                    destroy: true,
-                    // share: [String], add additional user with default permissions for collaboration
-                    manage: true, // update/remove existing permissions on resource
-                });
-                const badPermissions = new Permissions({
-                    get resourceType() {
-                        let resourceType;
-                        if ( meta.mimeType === 'folder' ) {
-                            resourceType = 'folder';
-                        }
-                        else {
-                            resourceType = 'file';
-                        }
-                        return resourceType;
-                    },  // project or file/folder and we can easily add additional resource types later
-                    resourceId: meta.id, // links to metadata id or project id
-                    appliesTo: 'user', // 'user', 'group', 'public'
-                    userId: rejectUser,
-                    groupId: null, // if applies to group
-                    read: false,
-                    write: false,
-                    destroy: false,
-                    // share: [String], add additional user with default permissions for collaboration
-                    manage: false, // update/remove existing permissions on resource
-                });
                 // create the good file record
-                const goodFile = new File({
+                const file = new File({
                     metaDataId: meta.id, // link to METADATA
-                    userId: acceptUser, // link to User Collection
+                    userId, // link to User Collection
                     get name() {
                         let name;
                         if ( array.length === index + 1 ) {
@@ -125,32 +77,7 @@ const insertFixture = function insertFixture( pathVar ) {
                         return parent;
                     },
                 });
-                const badFile = new File({
-                    metaDataId: meta.id, // link to METADATA
-                    userId: rejectUser, // link to User Collection
-                    get name() {
-                        let name;
-                        if ( array.length === index + 1 ) {
-                            name = array.join( '/' );
-                        }
-                        else {
-                            name = array.slice( 0, index + 1 ).join( '/' ) + '/';
-                        }
-                        return name;
-                    },
-                    get parent() {
-                        let parent;
-                        parent = array.slice( 0, index ).join( '/' );
-                        if ( parent ) parent += '/';
-                        return parent;
-                    },
-                });
-                return Promise.all([
-                    goodPermissions.save(),
-                    badPermissions.save(),
-                    goodFile.save(),
-                    badFile.save(),
-                ]);
+                return file.save();
             })
             .catch(( e ) => {
                 return Promise.reject( e );
@@ -194,7 +121,7 @@ describe( 'mongo-wrapper', () => {
             });
     });
 
-    const userId = acceptUser.toString();
+    const userId = userId.toString();
     describe( 'search', () => {
         describe( 'should find a file by various fields', () => {
         /* search options
