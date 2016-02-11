@@ -285,8 +285,8 @@ describe( 'mongo-wrapper', () => {
 
         it( 'should create the file and related records', () => {
             return Promise.all([
-                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.not.be.null,
-                expect( Permissions.findOne({ resourceId: fileRec.metaDataId }).exec()).to.not.be.null,
+                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.eventually.not.be.null,
+                expect( Permissions.findOne({ resourceId: fileRec.metaDataId }).exec()).to.eventually.not.be.null,
             ]);
         });
         it( 'should create the in-between folders', () => {
@@ -330,7 +330,7 @@ describe( 'mongo-wrapper', () => {
         });
         it( 'the old file should not exist', () => {
             oldFile = () => {
-                return expect( File.findOne({ name: oldPath }).exec()).to.be.null;
+                return expect( File.findOne({ name: oldPath }).exec()).to.eventually.be.null;
             };
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
@@ -340,49 +340,47 @@ describe( 'mongo-wrapper', () => {
     });
     describe( 'destroy', () => {
         let fileRec;
-        let meta;
-        before(() => {
-            fileRec = File.findOne({ name: '/level1/level2/level3/test.txt' });
-            meta = Meta.findOne({ _id: fileRec.metaDataId });
-            const file = new File({
-                metaDataId: meta.id, // link to METADATA
-                userId, // link to User Collection
-                name: '/level1/branch1/linkedrecord.txt',
-                parent: '/level1/branch1/',
+        let metaId;
+        const fileToDelete = '/level1/branch1/deleteme.txt';
+        const parentToDelete = '/level1/branch1';
+        before(( done ) => {
+            File.findOne({ name: '/level1/level2/level3/test.txt' }).exec()
+            .then(( file ) => {
+                metaId = () => {
+                    return Meta.findOne({ _id: file.metaDataId }).id;
+                };
+            })
+            .then(() => {
+                const file = new File({
+                    metaDataId: metaId, // link to METADATA
+                    userId, // link to User Collection
+                    name: fileToDelete,
+                    parent: parentToDelete,
+                });
+                file.save()
+                .then(() => {
+                    done();
+                });
             });
-            file.save();
+        });
+        it( 'should respond with success on a successful delete', () => {
+            return expect( mongo.destroy( userId, fileToDelete )).to.be.fulfilled
+                .and.eventually.have.property( 'status', 'SUCCESS' );
         });
         it( 'should only destroy the file record and intervening records', () => {
-            mongo.destroy( userId, '/level1/branch1/linkedrecord.txt' );
             return Promise.all([
-                expect( File.findOne({ name: '/level1/branch1/linkedrecord.txt' })).to.be.null,
-                expect( File.findOne({ name: '/level1/branch1/' })).to.be.null,
-                expect( Meta.findOne({ _id: fileRec.metaDataId })).to.not.be.null,
+                expect( File.findOne({ name: fileToDelete }).exec()).to.eventually.be.null,
+                expect( File.findOne({ name: parentToDelete }).exec()).to.eventually.be.null,
+                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.eventaully.not.be.null,
             ]);
         });
 
-        it( 'should also destroy the meta if there are no other file entries for one meta', () => {
+        it( 'should also destroy the meta if there are no other file entries for the deleted file\'s meta', () => {
             mongo.destroy( userId, '/level1/level2/level3/test.txt' );
             return Promise.all([
-                expect( File.findOne({ name: '/level1/level2/level3/test.txt' })).to.be.null,
-                expect( Meta.findOne({ _id: fileRec.metaDataId })).to.be.null,
+                expect( File.findOne({ name: '/level1/level2/level3/test.txt' }).exec()).to.eventually.be.null,
+                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.evantually.be.null,
             ]);
         });
-    });
-
-    it( 'should resolve with SUCCESS when updating with a valid search object and update object', () => {
-        const searchObj = { id: 12345 };
-        const updateObj = { metaData: 'someData' };
-
-        return expect( mongo.update( searchObj, updateObj )).to.be.fulfilled
-            .and.eventually.have.property( 'status', 'SUCCESS' );
-    });
-
-
-    it( 'should resolve with SUCCESS when deleting with a valid search object', () => {
-        const searchObj = { id: 12345 };
-
-        return expect( mongo.destroy( searchObj )).to.be.fulfilled
-            .and.eventually.have.property( 'status', 'SUCCESS' );
     });
 });
