@@ -273,12 +273,11 @@ describe( 'mongo-wrapper', () => {
         let fileRec;
 
         it( 'should create the file record return SUCCESS on a successful creation', () => {
-            const user = userId;
             const fullPath = '/level1/l2branch/l3branch/created.txt';
             const guid = 'TESTDATA';
 
             fileRec = () => {
-                return expect( mongo.create( user, fullPath, guid )).to.be.fulfilled
+                return expect( mongo.create( userId, fullPath, guid )).to.be.fulfilled
                     .and.to.not.be.null
                     .and.eventually.have.property( 'status', 'SUCCESS' );
             };
@@ -301,49 +300,44 @@ describe( 'mongo-wrapper', () => {
     // we don't need an update test, because we will either be updating the permissions or the file path
 
     describe( 'copy', () => {
-        let oldFile;
         // userId, old path, new path
         const oldPath = '/level1/level2/level3/test.txt';
         const newPath = '/copylevel/copy.txt';
-        before(() => {
-            mongo.copy( userId, oldPath, newPath );
-        });
+        let oldFile;
         it( 'should respond with success on a successful copy', () => {
-            return expect( mongo.copy( oldPath, newPath )).to.be.fulfilled
+            return expect( mongo.copy( userId, oldPath, newPath )).to.be.fulfilled
                 .and.eventually.have.property( 'status', 'SUCCESS' );
         });
         it( 'the old file should still exist', () => {
             oldFile = () => {
-                return expect( File.findOne({ name: '/level1/level2/level3/test.txt' }).exec()).to.not.be.null;
+                return expect( File.findOne({ name: oldPath }).exec()).to.not.be.null;
             };
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
-            return expect( File.findOne({ name: '/copylevel/copy.txt' }).exec()).to.be.fulfilled
+            return expect( File.findOne({ name: newPath }).exec()).to.be.fulfilled
                 .and.eventually.have.property( 'metaDataId', oldFile.metaDataId );
         });
     });
-
     describe( 'move', () => {
+        // a rename is also a move
         // userId, old path, new path
-        const oldFileMetaId = File.findOne({ name: '/level1/level2/level3/test.txt' }).metaDataId;
+        const oldPath = '/level1/level2/level3/test.txt';
+        const newPath = '/movelevel/move.txt';
         let oldFile;
-        let newFile;
-        before(() => {
-            mongo.move( userId, '/level1/level2/level3/test.txt', '/movelevel/move.txt' );
-            oldFile = File.findOne({ name: '/level1/level2/level3/test.txt' });
-            newFile = File.findOne({ name: '/copylevel/copy.txt' });
+        it( 'should respond with success on a successful move', () => {
+            return expect( mongo.move( userId, oldPath, newPath )).to.be.fulfilled
+                .and.eventually.have.property( 'status', 'SUCCESS' );
         });
         it( 'the old file should not exist', () => {
-            return expect( oldFile ).to.be.null;
+            oldFile = () => {
+                return expect( File.findOne({ name: oldPath }).exec()).to.be.null;
+            };
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
-            return expect( newFile.metaDataId ).to.equal( oldFile.metaDataId );
+            return expect( File.findOne({ name: newPath }).exec()).to.be.fulfilled
+                .and.eventually.have.property( 'metaDataId', oldFile.metaDataId );
         });
     });
-
-    describe( 'rename', () => {
-    });
-
     describe( 'destroy', () => {
         let fileRec;
         let meta;
@@ -358,7 +352,6 @@ describe( 'mongo-wrapper', () => {
             });
             file.save();
         });
-        // if meta has multiple files, should only destroy file record
         it( 'should only destroy the file record and intervening records', () => {
             mongo.destroy( userId, '/level1/branch1/linkedrecord.txt' );
             return Promise.all([
@@ -367,7 +360,7 @@ describe( 'mongo-wrapper', () => {
                 expect( Meta.findOne({ _id: fileRec.metaDataId })).to.not.be.null,
             ]);
         });
-        // if meta has no other files, should remove meta record
+
         it( 'should also destroy the meta if there are no other file entries for one meta', () => {
             mongo.destroy( userId, '/level1/level2/level3/test.txt' );
             return Promise.all([
