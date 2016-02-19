@@ -62,7 +62,7 @@ const insertFixture = function insertFixture( pathVar ) {
                 return name;
             },
         });
-        return File.save();
+        return file.save();
     });
     return Promise.all( promises );
 };
