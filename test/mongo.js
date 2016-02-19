@@ -16,7 +16,6 @@ const mime = require( 'mime' );
 const mongoose = require( 'mongoose' );
 const mongo = require( '../src/index.js' );
 const File = mongo.schema.file;
-const Meta = mongo.schema.meta;
 
 chai.use( sinonchai );
 chai.use( chaiaspromised );
@@ -31,9 +30,9 @@ const userId = new mongoose.Types.ObjectId();
 const insertFixture = function insertFixture( pathVar ) {
     // for each level:
     const promises = pathVar.map(( value, index, array ) => {
-        // create the meta
-        const meta = new Meta({
-            guid: 'TESTDATA', // s3 guid
+        // create the file
+        const file = new File({
+            _id: 'TESTDATA',
             get mimeType() {
                 let mimeVar;
                 if ( index === array.length ) {
@@ -47,41 +46,23 @@ const insertFixture = function insertFixture( pathVar ) {
             size: 12345678,
             dateCreated: new Date(), // https://docs.mongodb.org/v3.0/reference/method/Date/
             lastModified: new Date(), // https://docs.mongodb.org/v3.0/reference/method/Date/
-            get children() {
-                if ( index !== array.length ) {
-                    return array[index + 1];
+            get parents() {
+                if ( index !== 0 ) {
+                    return array[index];
                 }
             },
+            get name() {
+                let name;
+                if ( array.length === index + 1 ) {
+                    name = array.join( '/' );
+                }
+                else {
+                    name = array.slice( 0, index + 1 ).join( '/' ) + '/';
+                }
+                return name;
+            },
         });
-        return meta.save()
-            .then(( meta ) => {
-                // overwrite meta with more meta
-                // create the good file record
-                const file = new File({
-                    metaDataId: meta.id, // link to METADATA
-                    userId, // link to User Collection
-                    get name() {
-                        let name;
-                        if ( array.length === index + 1 ) {
-                            name = array.join( '/' );
-                        }
-                        else {
-                            name = array.slice( 0, index + 1 ).join( '/' ) + '/';
-                        }
-                        return name;
-                    },
-                    get parent() {
-                        let parent;
-                        parent = array.slice( 0, index ).join( '/' );
-                        if ( parent ) parent += '/';
-                        return parent;
-                    },
-                });
-                return file.save();
-            })
-            .catch(( e ) => {
-                return Promise.reject( e );
-            });
+        return File.save();
     });
     return Promise.all( promises );
 };
@@ -102,16 +83,15 @@ describe( 'mongo-wrapper', () => {
     afterEach( function afterEach( done ) {
         // make an array of all test meta ids
         let ids;
-        Meta.find({ guid: 'TESTDATA' }).exec()
+        File.find({ guid: 'TESTDATA' }).exec()
             .then(( docs ) => {
                 ids = docs.map( function mapId( item ) {
                     return item._id;
                 });
-                const p1 = Meta.remove({ _id: { $in: ids } }).exec();
-                const p2 = Permissions.remove({ resourceId: { $in: ids } }).exec();
-                const p3 = File.remove({ metaDataId: { $in: ids } }).exec();
+                const p1 = Permissions.remove({ resourceId: { $in: ids } }).exec();
+                const p2 = File.remove({ metaDataId: { $in: ids } }).exec();
                 // now remove all the things
-                return Promise.all([ p1, p2, p3 ]);
+                return Promise.all([ p1, p2 ]);
             })
             .then(() => {
                 done();
@@ -198,11 +178,9 @@ describe( 'mongo-wrapper', () => {
         // userId, path, guid
 
         let fileRec;
-
+        const fullPath = '/level1/l2branch/l3branch/created.txt';
+        const guid = 'TESTDATA';
         it( 'should create the file record return SUCCESS on a successful creation', () => {
-            const fullPath = '/level1/l2branch/l3branch/created.txt';
-            const guid = 'TESTDATA';
-
             fileRec = () => {
                 return expect( mongo.create( userId, fullPath, guid )).to.be.fulfilled
                     .and.to.not.be.null
@@ -212,19 +190,18 @@ describe( 'mongo-wrapper', () => {
 
         it( 'should create the file and related records', () => {
             return Promise.all([
-                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.eventually.not.be.null,
+                expect( File.findOne({ _id: guid }).exec()).to.eventually.not.be.null,
                 expect( Permissions.findOne({ resourceId: fileRec.metaDataId }).exec()).to.eventually.not.be.null,
             ]);
         });
         it( 'should create the in-between folders', () => {
             return Promise.all([
                 expect( File.findOne({ name: '/level1/l2branch/' }).exec()).to.not.be.null,
-                expect( File.findOne({ name: '/level1/l2branch/l3branch' }).exec()).to.not.be.null,
+                expect( File.findOne({ name: '/level1/l2branch/l3branch/' }).exec()).to.not.be.null,
             ]);
         });
     });
-
-    // we don't need an update test, because we will either be updating the permissions or the file path
+    // todo: add a test for the tupe of update we're doing now
 
     describe( 'copy', () => {
         // userId, old path, new path
@@ -266,39 +243,32 @@ describe( 'mongo-wrapper', () => {
         });
     });
     describe( 'destroy', () => {
+        // todo: this needs to be re-written to work with the new schema
         let fileRec;
         let metaId;
         const fileToDelete = '/level1/branch1/deleteme.txt';
         const parentToDelete = '/level1/branch1';
         before(( done ) => {
-            File.findOne({ name: '/level1/level2/level3/test.txt' }).exec()
-            .then(( file ) => {
-                metaId = () => {
-                    return Meta.findOne({ _id: file.metaDataId }).id;
-                };
-            })
+            const file = new File({
+                metaDataId: metaId, // link to METADATA
+                userId, // link to User Collection
+                name: fileToDelete,
+                parent: parentToDelete,
+            });
+            file.save()
             .then(() => {
-                const file = new File({
-                    metaDataId: metaId, // link to METADATA
-                    userId, // link to User Collection
-                    name: fileToDelete,
-                    parent: parentToDelete,
-                });
-                file.save()
-                .then(() => {
-                    done();
-                });
+                done();
             });
         });
         it( 'should respond with success on a successful delete', () => {
             return expect( mongo.destroy( userId, fileToDelete )).to.be.fulfilled
                 .and.eventually.have.property( 'status', 'SUCCESS' );
         });
+        // todo: this makes no sense, should be deleting children
         it( 'should only destroy the file record and intervening records', () => {
             return Promise.all([
                 expect( File.findOne({ name: fileToDelete }).exec()).to.eventually.be.null,
                 expect( File.findOne({ name: parentToDelete }).exec()).to.eventually.be.null,
-                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.eventaully.not.be.null,
             ]);
         });
 
@@ -306,7 +276,6 @@ describe( 'mongo-wrapper', () => {
             mongo.destroy( userId, '/level1/level2/level3/test.txt' );
             return Promise.all([
                 expect( File.findOne({ name: '/level1/level2/level3/test.txt' }).exec()).to.eventually.be.null,
-                expect( Meta.findOne({ _id: fileRec.metaDataId }).exec()).to.evantually.be.null,
             ]);
         });
     });

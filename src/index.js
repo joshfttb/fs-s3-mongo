@@ -5,7 +5,6 @@
 const mongo = require( './mongo.js' );
 const s3 = require( './s3.js' );
 const utils = require( './utils.js' );
-const Meta = require( './schemas/metaDataSchema.js' );
 const File = require( './schemas/fileSchema.js' );
 const brinkbitPermissions = require( 'brinkbit-permissions' );
 const verify = brinkbitPermissions.verify;
@@ -13,7 +12,6 @@ const connect = brinkbitPermissions.connect;
 
 module.exports.schema = {
     file: File,
-    meta: Meta,
 };
 
 module.exports.read = function read( path ) {

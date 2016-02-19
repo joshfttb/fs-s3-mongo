@@ -4,10 +4,13 @@ const mongoose = require( 'mongoose' );
 const Schema = mongoose.Schema;
 
 const fileSchema = new Schema({
-    metaDataId: Schema.Types.ObjectId, // link to METADATA
-    userId: Schema.Types.ObjectId, // link to User Collection
+    _id: String,
+    mimeType: String, // http://www.freeformatter.com/mime-types-list.html (includes folder type)
+    size: Number,
+    dateCreated: Date,
+    lastModified: Date,
+    parents: [String],
     name: String, // if the resource is a folder, it ends in a '/'
-    parent: String, // '/top/mid/'
 });
 
 module.exports = mongoose.model( 'File', fileSchema );
