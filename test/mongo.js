@@ -104,14 +104,6 @@ describe( 'mongo-wrapper', () => {
     const userId = userId.toString();
     describe( 'search', () => {
         describe( 'should find a file by various fields', () => {
-        /* search options
-            name -> file
-            size -> meta
-            created -> meta
-            modified -> meta
-            user -> file
-        */
-
             // by file name
             // todo: change this
             const numFiles = 1;
