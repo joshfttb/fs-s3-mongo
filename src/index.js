@@ -15,16 +15,17 @@ module.exports.schema = {
     file: File,
 };
 
-module.exports.alias = function alias( fullPath, operation ) {
+module.exports.alias = function alias( userId, operation, fullPath ) {
     let lastGuid;
     const promises = [];
     connect
     .then(() => {
-        // split the path
-        const pathArray = fullPath.split( '/' );
-        pathArray.forEach(( value, index, array ) => {
+        // split the path. for each part:
+        fullPath.split( '/' ).unshift( userId ).forEach(( value, index, array ) => {
+            // generate the current path
             const currentPath = array.slice( 0, index ).join( '/' );
             // determine that the path exists, has the correct parent, and is a folder
+            // todo: the '/' on the end is going to be a problem
             File.findOne({ $and: [{ name: currentPath }, { parents: lastGuid }, { mimeType: 'folder' }] }).exec()
                 .then(( file ) => {
                     // if there is no resource, and this is not the end of the path, we have a problem
@@ -44,12 +45,12 @@ module.exports.alias = function alias( fullPath, operation ) {
                     else if ( file && index < array.length && operation === 'write' ) {
                         return Promise.reject( 'RESOURCE_EXISTS' );
                     }
-                    // if there is a file
+                    // if this is not the end of the path and the resource exists
                     else {
                         // store the guid
                         lastGuid = file._id;
                         // and send it to the map
-                        promises.push( verify( lastGuid, operation ));
+                        promises.push( verify( userId, operation, lastGuid ));
                     }
                 });
             // todo: need to do a promise.all of guids into verify, and .then won't work in a map will it?
