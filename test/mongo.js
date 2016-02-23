@@ -15,7 +15,6 @@ const sinonchai = require( 'sinon-chai' );
 const mime = require( 'mime' );
 const mongoose = require( 'mongoose' );
 const mongo = require( '../src/index.js' );
-const File = mongo.schema.file;
 
 chai.use( sinonchai );
 chai.use( chaiaspromised );
@@ -81,27 +80,34 @@ describe( 'mongo-wrapper', () => {
 
 
     afterEach( function afterEach( done ) {
-        // make an array of all test meta ids
-        let ids;
-        File.find({ guid: 'TESTDATA' }).exec()
-            .then(( docs ) => {
-                ids = docs.map( function mapId( item ) {
-                    return item._id;
-                });
-                const p1 = Permissions.remove({ resourceId: { $in: ids } }).exec();
-                const p2 = File.remove({ metaDataId: { $in: ids } }).exec();
-                // now remove all the things
-                return Promise.all([ p1, p2 ]);
-            })
-            .then(() => {
-                done();
-            })
-            .catch(( e ) => {
-                throw ( e );
-            });
+        File.remove({ guid: 'TESTDATA' }).exec()
+        .then(() => {
+            done();
+        })
+        .catch(( e ) => {
+            throw ( e );
+        });
     });
 
     const userId = userId.toString();
+    describe( 'alias', () => {
+        // should not treat a file as a folder
+        it( 'should return a guid for a valid resource', () => {
+            return expect( mongo.alias( userId, 'read', 'level1/level2/level3/test.txt' )).to.be.fulfilled;
+        });
+        it( 'should return an error for an invalid resource', () => {
+            return expect( mongo.alias( userId, 'read', 'level1/level2/level3/notExist.txt' )).to.be.rejectedWith( 'INVALID_RESOURCE_PATH' );
+        });
+        it( 'not allow insertion of a file into another file', () => {
+            return expect( mongo.alias( userId, 'write', 'level1/level2/level3/test.txt/nestedTest.txt' ))
+                .to.be.rejectedWith( 'INVALID_RESOURCE_PATH' );
+        });
+        // should not create a duplicate file
+        it( 'not allow insertion of a duplicate file', () => {
+            return expect( mongo.alias( userId, 'write', 'level1/level2/level3/test.txt' ))
+                .to.be.rejectedWith( 'RESOURCE_EXISTS' );
+        });
+    });
     describe( 'search', () => {
         describe( 'should find a file by various fields', () => {
             // by file name
