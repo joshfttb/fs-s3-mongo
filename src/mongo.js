@@ -42,18 +42,32 @@ module.exports.connect = function mongoConnect() {
 };
 
 module.exports.alias = function alias( fullPath, userId, operation ) {
-    let lastGuid;
-    const promises = [];
+    let guid;
     permissions.connect()
         .then(() => {
             // split the path. for each part:
-            fullPath.split( '/' ).unshift( userId ).forEach(( value, index, array ) => {
+            const pathArray = fullPath.split( '/' );
+            pathArray.unshift( userId );
+            const queries = pathArray.map(( value, index, array ) => {
+                let query;
                 // generate the current path
-                const currentPath = array.slice( 0, index ).join( '/' );
-                // determine that the path exists, has the correct parent, and is a folder
-                // todo: the '/' on the end is going to be a problem
-                File.findOne({ $and: [{ name: currentPath }, { parents: lastGuid }, { mimeType: 'folder' }] }).exec()
-                    .then(( file ) => {
+                const currentPath = array.slice( 0, index + 1 ).join( '/' );
+                const parentPath = array.slice( 0, index ).join( '/' );
+                // if this is the root, it has no parent
+                if ( !parentPath ) {
+                    // determine that the path exists, and is a folder
+                    query = File.findOne({ $and: [{ name: currentPath }, { mimeType: 'folder' }] }).exec;
+                }
+                else {
+                    // determine that the path exists, has the correct parent, and is a folder
+                    query = File.findOne({ $and: [{ name: currentPath }, { parents: parentPath }, { mimeType: 'folder' }] }).exec();
+                }
+                return query;
+            });
+            Promise.all( queries )
+                .then(( fileRecords ) => {
+                    const permissionQueries = [];
+                    fileRecords.forEach(( file, index, array ) => {
                         // if there is no resource, and this is not the end of the path, we have a problem
                         if ( !file && index < array.length ) {
                             return Promise.reject( 'RESOURCE_NOT_FOUND' );
@@ -73,23 +87,18 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                         }
                         // if this is not the end of the path and the resource exists
                         else {
-                            // store the guid
-                            lastGuid = file._id;
-                            // and send it to the map
-                            promises.push( permissions.verify( userId, operation, lastGuid ));
+                            // and send it to the array
+                            guid = permissionQueries.push( permissions.verify( file._id, userId, operation ));
                         }
                     });
-                // todo: need to do a promise.all of guids into verify, and .then won't work in a map will it?
-            });
-        })
-        .then(() => {
-            Promise.all( promises );
-        })
-        .then(() => {
-            Promise.resolve( lastGuid );
-        })
-        .catch(( e ) => {
-            Promise.reject( e );
+                    Promise.all( permissionQueries );
+                })
+                .then(() => {
+                    return Promise.resolve( guid );
+                })
+                .catch(( e ) => {
+                    return Promise.reject( e );
+                });
         });
 };
 
