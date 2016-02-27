@@ -14,7 +14,8 @@ const chaiaspromised = require( 'chai-as-promised' );
 const sinonchai = require( 'sinon-chai' );
 const mime = require( 'mime' );
 const mongoose = require( 'mongoose' );
-const mongo = require( '../src/index.js' );
+const mongo = require( '../src/mongo.js' );
+const File = require( '../src/schemas/fileSchema.js' );
 
 chai.use( sinonchai );
 chai.use( chaiaspromised );
@@ -23,15 +24,16 @@ chai.use( chaiaspromised );
 // create the path
 const path = [ 'level1', 'level2', 'level3', 'test.txt' ];
 // stub the userid
-const userId = new mongoose.Types.ObjectId();
+let userId = new mongoose.Types.ObjectId();
 
 // create the meta and permissions
 const insertFixture = function insertFixture( pathVar ) {
-    // for each level:
+    // clear the guids
     const promises = pathVar.map(( value, index, array ) => {
         // create the file
         const file = new File({
-            _id: 'TESTDATA',
+            // using the path plus a prefix makes this easy to test
+            _id: 'TEST-GUID-' + value,
             get mimeType() {
                 let mimeVar;
                 if ( index === array.length ) {
@@ -47,18 +49,11 @@ const insertFixture = function insertFixture( pathVar ) {
             lastModified: new Date(), // https://docs.mongodb.org/v3.0/reference/method/Date/
             get parents() {
                 if ( index !== 0 ) {
-                    return array[index];
+                    return 'TEST-GUID-' + array[index - 1];
                 }
             },
             get name() {
-                let name;
-                if ( array.length === index + 1 ) {
-                    name = array.join( '/' );
-                }
-                else {
-                    name = array.slice( 0, index + 1 ).join( '/' ) + '/';
-                }
-                return name;
+                return array.slice( 0, index + 1 ).join( '/' ) + '/';
             },
         });
         return file.save();
@@ -69,7 +64,24 @@ const insertFixture = function insertFixture( pathVar ) {
 
 describe( 'mongo-wrapper', () => {
     beforeEach( function beforeEach( done ) {
-        return insertFixture( path )
+        mongo.connect()
+            .then(() => {
+                insertFixture( path )
+                    .then(() => {
+                        done();
+                    });
+            })
+            .catch(( e ) => {
+                throw new Error( e );
+            });
+    });
+
+
+    afterEach( function afterEach( done ) {
+        const removals = path.map(( value ) => {
+            return 'TEST-GUID-' + value;
+        });
+        File.remove({ _id: { $in: removals } }).exec()
             .then(() => {
                 done();
             })
@@ -78,18 +90,7 @@ describe( 'mongo-wrapper', () => {
             });
     });
 
-
-    afterEach( function afterEach( done ) {
-        File.remove({ guid: 'TESTDATA' }).exec()
-        .then(() => {
-            done();
-        })
-        .catch(( e ) => {
-            throw ( e );
-        });
-    });
-
-    const userId = userId.toString();
+    userId = userId.toString();
     describe( 'alias', () => {
         // should not treat a file as a folder
         it( 'should return a guid for a valid resource', () => {
