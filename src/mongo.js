@@ -48,6 +48,7 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
         .then(() => {
             // split the path. for each part:
             const pathArray = fullPath.split( '/' );
+            // todo: justin and brian, are the file names coming into alias with the userid in front?
             pathArray.unshift( userId );
             const queries = pathArray.map(( value, index, array ) => {
                 let query;
