@@ -51,8 +51,8 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
             const queries = pathArray.map(( value, index, array ) => {
                 let query;
                 // generate the current path
-                const currentPath = array.slice( 0, index + 1 ).join( '/' );
-                const parentPath = array.slice( 0, index ).join( '/' );
+                const currentPath = '/' + array.slice( 0, index + 1 ).join( '/' );
+                const parentPath = '/' + array.slice( 0, index ).join( '/' );
                 // if this is the root, it has no parent
                 if ( !parentPath ) {
                     // determine that the path exists, and is a folder

@@ -64,33 +64,40 @@ const insertFixture = function insertFixture( pathVar ) {
     return Promise.all( promises );
 };
 
+const clearTestRecords = function clearTestRecords() {
+    const removals = path.map(( value ) => {
+        return 'TEST-GUID-' + value;
+    });
+    return File.remove({ _id: { $in: removals } }).exec();
+};
+
 
 describe( 'mongo-wrapper', () => {
     beforeEach( function beforeEach( done ) {
         mongo.connect()
-            .then(() => {
-                insertFixture( path )
-                    .then(() => {
-                        done();
-                    });
-            })
-            .catch(( e ) => {
-                throw new Error( e );
-            });
+        .then(() => {
+            clearTestRecords();
+        })
+        .then(() => {
+            insertFixture( path )
+                .then(() => {
+                    done();
+                });
+        })
+        .catch(( e ) => {
+            throw new Error( e );
+        });
     });
 
 
     afterEach( function afterEach( done ) {
-        const removals = path.map(( value ) => {
-            return 'TEST-GUID-' + value;
+        clearTestRecords()
+        .then(() => {
+            done();
+        })
+        .catch(( e ) => {
+            throw ( e );
         });
-        File.remove({ _id: { $in: removals } }).exec()
-            .then(() => {
-                done();
-            })
-            .catch(( e ) => {
-                throw ( e );
-            });
     });
 
     userId = userId.toString();
