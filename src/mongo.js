@@ -44,7 +44,7 @@ module.exports.connect = function mongoConnect() {
 module.exports.alias = function alias( fullPath, userId, operation ) {
     return new Promise(( resolve, reject ) => {
         let guid;
-        permissions.connect()
+        exports.connect()
         .then(() => {
             // split the path. for each part:
             const pathArray = fullPath.split( '/' );
