@@ -59,7 +59,7 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                     // determine that the path exists
                     query = File.findOne({ name: currentPath }).exec();
                 }
-                // if this is not
+                // if this is not root
                 else {
                     // determine that the path exists and has the correct parent
                     query = File.findOne({ $and: [{ name: currentPath }, { parents: parentPath }] }).exec();
@@ -101,7 +101,7 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                         }
                         else {
                             // as long as the file exists, sent it to the array
-                            // if it does not exist, and it's passed the tests above, no problem
+                            // if it does not exist, and it has passed the tests above, no problem
                             // we'll just be checking all of the parents
                             if ( file ) {
                                 guid = file._id;
