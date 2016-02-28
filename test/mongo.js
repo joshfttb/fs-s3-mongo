@@ -21,23 +21,24 @@ chai.use( sinonchai );
 chai.use( chaiaspromised );
 
 // HARDCODED FIXTURE VERSION
-// create the path
-const path = [ 'level1', 'level2', 'level3', 'test.txt' ];
 // stub the userid
 let userId = new mongoose.Types.ObjectId();
+// create the path
+const path = [ 'level1', 'level2', 'level3', 'test.txt' ];
+path.unshift( userId );
 
 // create the meta and permissions
-const insertFixture = function insertFixture( pathVar ) {
-    pathVar.unshift( userId );
+const insertFixture = function insertFixture( path ) {
     // clear the guids
-    const promises = pathVar.map(( value, index, array ) => {
+    const promises = path.map(( value, index, array ) => {
         // create the file
         const file = new File({
             // using the path plus a prefix makes this easy to test
             _id: 'TEST-GUID-' + value,
             get mimeType() {
                 let mimeVar;
-                if ( index === array.length ) {
+                // todo: fix this, it's not working
+                if ( index === array.length - 1 ) {
                     mimeVar = mime.lookup( value.split( '.' ).pop());
                 }
                 else {
@@ -104,7 +105,12 @@ describe( 'mongo-wrapper', () => {
     describe( 'alias', () => {
         // should not treat a file as a folder
         it( 'should return a guid for a valid resource', () => {
-            return expect( mongo.alias( 'level1/level2/level3/test.txt', userId, 'read' )).to.be.fulfilled;
+            const pathvar = '/' + userId + path;
+            File.findOne({ name: pathvar }).exec()
+            .then(( file ) => {
+                return expect( mongo.alias( pathvar, userId, 'read' )).to.be.fulfilled
+                    .and.eventually.equal( file._id );
+            });
         });
         it( 'should return an error for an invalid resource', () => {
             return expect( mongo.alias( 'level1/level2/level3/notExist.txt', userId, 'read' )).to.be.rejectedWith( 'INVALID_RESOURCE_PATH' );
