@@ -104,8 +104,7 @@ describe( 'mongo-wrapper', () => {
     describe( 'alias', () => {
         // should not treat a file as a folder
         it( 'should return a guid for a valid resource', () => {
-            return expect( mongo.alias( 'level1/level2/level3/test.txt', userId, 'read' )).to.be.fulfilled
-                .and.eventually.have.prop( testGuidPrefix + 'test.txt' );
+            return expect( mongo.alias( 'level1/level2/level3/test.txt', userId, 'read' )).to.eventually.have.property( 'guid', testGuidPrefix + 'test.txt' );
         });
         it( 'should return an error for an invalid resource', () => {
             return expect( mongo.alias( 'level1/level2/level3/notExist.txt', userId, 'read' )).to.be.rejectedWith( 'INVALID_RESOURCE_PATH' );

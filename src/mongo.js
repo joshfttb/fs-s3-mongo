@@ -1,7 +1,7 @@
 'use strict';
 
 /* eslint no-unused-vars: 0 */
-/* eslint no-else-return: 0 */
+/* eslint no-loop-func: 0 */
 
 const utils = require( './utils.js' );
 const File = require( '../src/schemas/fileSchema.js' );
@@ -47,66 +47,61 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
         const response = {};
         exports.connect()
             .then(() => {
-                const guids = [];
                 // split the path. for each part:
                 const pathArray = fullPath.split( '/' );
-                pathArray.unshift( userId );
-                let queue = Promise.resolve();
-                pathArray.forEach(( name, index, array ) => {
-                    let query;
+                let queue = File.findOne({ name: userId }).exec();
+                for ( let i = 0; i <= pathArray.length; i++ ) {
+                    const name = pathArray[i];
+                    const index = i - 1;
+                    const array = pathArray;
                     queue = queue.then(( file ) => {
                         // this is empty the first time around, but we still want to verify the
                         // root path
-                        if ( index === 0 ) {
-                            return File.findOne({ name }).exec();
+                        // if there is no resource, and this is not the end of the path, we have a problem
+                        if ( !file && index !== array.length - 1 ) {
+                            reject( 'RESOURCE_NOT_FOUND' );
+                        }
+                        // if this is the end of the path, and the resource does not exist, that's a problem for read and modify operations
+                        else if ( !file
+                            && index === array.length - 1
+                            && (
+                                operation === 'read' ||
+                                operation === 'update' ||
+                                operation === 'destroy'
+                            )) {
+                            reject( 'INVALID_RESOURCE_PATH' );
+                        }
+                        // if this is the end of the path, and the resource does exist, that's a problem for write operations
+                        else if ( file
+                            && index === array.length - 1
+                            && operation === 'write' ) {
+                            reject( 'RESOURCE_EXISTS' );
+                        }
+                        // if this is not the end of the path, and the resource is not a folder, that's a problem too
+                        else if ( index !== array.length - 1
+                            && file.mimeType !== 'folder' ) {
+                            reject( 'INVALID_RESOURCE_PATH' );
                         }
                         else {
-                            // if there is no resource, and this is not the end of the path, we have a problem
-                            if ( !file && index !== array.length - 1 ) {
-                                reject( 'RESOURCE_NOT_FOUND' );
-                            }
-                            // if this is the end of the path, and the resource does not exist, that's a problem for read and modify operations
-                            else if ( !file
-                                && index === array.length - 1
-                                && (
-                                    operation === 'read' ||
-                                    operation === 'update' ||
-                                    operation === 'destroy'
-                                )) {
-                                reject( 'INVALID_RESOURCE_PATH' );
-                            }
-                            // if this is the end of the path, and the resource does exist, that's a problem for write operations
-                            else if ( file
-                                && index === array.length - 1
-                                && operation === 'write' ) {
-                                reject( 'RESOURCE_EXISTS' );
-                            }
-                            // if this is not the end of the path, and the resource is not a folder, that's a problem too
-                            else if ( index !== array.length - 1
-                                && file.mimeType !== 'folder' ) {
-                                reject( 'INVALID_RESOURCE_PATH' );
-                            }
-                            else {
-                                // as long as the file exists, sent it to the array
-                                // if it does not exist, and it has passed the tests above, no problem
-                                // we'll just be checking all of the parents
-                                if ( file ) {
-                                    // store the guid
-                                    response.guid = file._id;
-                                    // store if this is a parent to allow sanity check in other mongo ops
-                                    if ( index !== array.length + 1 ) {
-                                        response.isParent = true;
-                                    }
-                                    else {
-                                        response.isParent = false;
-                                    }
-                                    permissionQueries.push( permissions.verify( file._id, userId, operation ));
+                            // as long as the file exists, sent it to the array
+                            // if it does not exist, and it has passed the tests above, no problem
+                            // we'll just be checking all of the parents
+                            if ( file ) {
+                                // store the guid
+                                response.guid = file._id;
+                                // store if this is a parent to allow sanity check in other mongo ops
+                                if ( index !== array.length ) {
+                                    response.isParent = true;
                                 }
+                                else {
+                                    response.isParent = false;
+                                }
+                                permissionQueries.push( permissions.verify( file._id, userId, operation ));
                             }
-                            return File.findOne({ $and: [{ name }, { parents: file._id }] }).exec();
                         }
+                        return File.findOne({ $and: [{ name }, { parents: file._id }] }).exec();
                     });
-                });
+                }
                 return queue;
             })
             .then(() => {
