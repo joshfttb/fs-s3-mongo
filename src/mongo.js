@@ -117,21 +117,17 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
     });
 };
 
-module.exports.search = function search( pathObj ) {
-    // TODO: hit mongo and search
+// Search for a document, with an optional sorting parameter
+module.exports.search = function search( toMatch, toSort ) {
     return Promise.reject( 'NOT_IMPLEMENTED' );
 };
 
-module.exports.update = function update( pathObj, data ) {
-    // TODO: hit mongo and update
-
-    //
-
+// Update any matched documents
+module.exports.update = function update( toMatch, toUpdate ) {
     return Promise.reject( 'NOT_IMPLEMENTED' );
 };
 
-module.exports.destroy = function destroy( pathObj ) {
-    // TODO: hit mongo and delete
-
+// Delete any matched documents
+module.exports.destroy = function destroy( toMatch ) {
     return Promise.reject( 'NOT_IMPLEMENTED' );
 };
