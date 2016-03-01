@@ -44,7 +44,7 @@ module.exports.connect = function mongoConnect() {
 module.exports.alias = function alias( fullPath, userId, operation ) {
     return new Promise(( resolve, reject ) => {
         const permissionQueries = [];
-        let guid;
+        const response = {};
         exports.connect()
             .then(() => {
                 const guids = [];
@@ -54,17 +54,13 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                 let queue = Promise.resolve();
                 pathArray.forEach(( name, index, array ) => {
                     let query;
-                    queue = queue.then(( response ) => {
+                    queue = queue.then(( file ) => {
                         // this is empty the first time around, but we still want to verify the
                         // root path
                         if ( index === 0 ) {
                             return File.findOne({ name }).exec();
                         }
                         else {
-                            let file;
-                            if ( response ) {
-                                file = response._doc;
-                            }
                             // if there is no resource, and this is not the end of the path, we have a problem
                             if ( !file && index !== array.length - 1 ) {
                                 reject( 'RESOURCE_NOT_FOUND' );
@@ -95,11 +91,19 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                                 // if it does not exist, and it has passed the tests above, no problem
                                 // we'll just be checking all of the parents
                                 if ( file ) {
-                                    guid = file._id;
+                                    // store the guid
+                                    response.guid = file._id;
+                                    // store if this is a parent to allow sanity check in other mongo ops
+                                    if ( index !== array.length + 1 ) {
+                                        response.isParent = true;
+                                    }
+                                    else {
+                                        response.isParent = false;
+                                    }
                                     permissionQueries.push( permissions.verify( file._id, userId, operation ));
                                 }
                             }
-                            return File.findOne({ $and: [{ name }, { parents: response._id }] }).exec();
+                            return File.findOne({ $and: [{ name }, { parents: file._id }] }).exec();
                         }
                     });
                 });
@@ -109,10 +113,8 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                 Promise.all( permissionQueries );
             })
             .then(() => {
-                resolve({
-                    status: 'SUCCESS',
-                    guid,
-                });
+                response.status = 'SUCCESS';
+                resolve( response );
             })
             .catch(( e ) => {
                 reject( e );
