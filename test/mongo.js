@@ -53,13 +53,11 @@ const insertFixture = function insertFixture( path ) {
             get parents() {
                 const parents = [];
                 if ( index !== 0 ) {
-                    parents.push( '/' + array.slice( 0, index ).join( '/' ));
+                    parents.push( testGuidPrefix + array[index - 1]);
                 }
                 return parents;
             },
-            get name() {
-                return '/' + array.slice( 0, index + 1 ).join( '/' );
-            },
+            name: value,
         });
         return file.save();
     });
