@@ -20,8 +20,7 @@
   "homepage": "https://github.com/Brinkbit/http-fs-node#readme",
   "dependencies": {
     "aws-sdk": "^2.2.6",
-    "brinkbit-permissions": "joshfttb/fs-brinkbit-permissions",
-    "fs-brinkbit-permisions": "github:joshfttb/fs-brinkbit-permissions",
+    "fs-brinkbit-permisions": "github:Brinkbit/fs-brinkbit-permissions",
     "http-server": "^0.8.5",
     "mime": "^1.3.4",
     "mongoose": "^4.4.5",
