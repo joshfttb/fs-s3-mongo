@@ -119,7 +119,7 @@ describe( 'mongo-wrapper', () => {
                 .to.be.rejectedWith( 'RESOURCE_EXISTS' );
         });
     });
-    describe( 'search', () => {
+    xdescribe( 'search', () => {
         describe( 'should find a file by various fields', () => {
             // by file name
             // todo: change this
