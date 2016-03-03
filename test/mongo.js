@@ -128,40 +128,35 @@ describe( 'mongo-wrapper', () => {
             it( 'should find files by name', () => {
                 const searchObj = { name: 'test.txt' };
 
-                return expect( mongo.search( searchObj )).to.be.fulfilled
-                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
+                return expect( mongo.search( searchObj )).to.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
 
             // by size
             it( 'should find files by size', () => {
                 const searchObj = { size: { min: 11111111, max: 22222222 } };
 
-                return expect( mongo.search( searchObj )).to.be.fulfilled
-                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
+                return expect( mongo.search( searchObj )).to.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
 
             // created by date (min / max, use moment?)
             it( 'should find files by date created', () => {
                 const searchObj = { created: { before: Date.now(), after: Date.now() - 60000 } };
 
-                return expect( mongo.search( searchObj )).to.be.fulfilled
-                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
+                return expect( mongo.search( searchObj )).to.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
 
             // verified by date (min / max, use moment?)
             it( 'should find files by date modified', () => {
                 const searchObj = { modified: { before: Date.now(), after: Date.now() - 60000 } };
 
-                return expect( mongo.search( searchObj )).to.be.fulfilled
-                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
+                return expect( mongo.search( searchObj )).to.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
 
             // by user
             it( 'should find files by user', () => {
                 const searchObj = userId;
 
-                return expect( mongo.search( searchObj )).to.be.fulfilled
-                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
+                return expect( mongo.search( searchObj )).to.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( numFiles );
             });
 
             it( 'should find and sort when given a sort object', () => {
@@ -171,14 +166,12 @@ describe( 'mongo-wrapper', () => {
                 // todo: need to make the data to support this
                 const files = [];
 
-                return expect( mongo.search( searchObj, sortObj )).to.be.fulfilled
-                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.deep.equal( files );
+                return expect( mongo.search( searchObj, sortObj )).to.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.deep.equal( files );
             });
 
             it( 'should resolve with an empty array when given a valid search object that doesn\'t match anything', () => {
                 const searchObj = { name: 'test.txt' };
-                return expect( mongo.search( searchObj )).to.be.fulfilled
-                    .and.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( 0 );
+                return expect( mongo.search( searchObj )).to.eventually.have.property( 'data' ).to.be.instanceof( Array ).and.have.length( 0 );
             });
         });
     });
@@ -191,9 +184,7 @@ describe( 'mongo-wrapper', () => {
         const guid = 'TESTDATA';
         it( 'should create the file record return SUCCESS on a successful creation', () => {
             fileRec = () => {
-                return expect( mongo.create( userId, fullPath, guid )).to.be.fulfilled
-                    .and.to.not.be.null
-                    .and.eventually.have.property( 'status', 'SUCCESS' );
+                return expect( mongo.create( userId, fullPath, guid )).to.eventually.have.property( 'status', 'SUCCESS' );
             };
         });
 
@@ -218,8 +209,7 @@ describe( 'mongo-wrapper', () => {
         const newPath = '/copylevel/copy.txt';
         let oldFile;
         it( 'should respond with success on a successful copy', () => {
-            return expect( mongo.copy( userId, oldPath, newPath )).to.be.fulfilled
-                .and.eventually.have.property( 'status', 'SUCCESS' );
+            return expect( mongo.copy( userId, oldPath, newPath )).to.eventually.have.property( 'status', 'SUCCESS' );
         });
         it( 'the old file should still exist', () => {
             oldFile = () => {
@@ -227,8 +217,7 @@ describe( 'mongo-wrapper', () => {
             };
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
-            return expect( File.findOne({ name: newPath }).exec()).to.be.fulfilled
-                .and.eventually.have.property( 'metaDataId', oldFile.metaDataId );
+            return expect( File.findOne({ name: newPath }).exec()).to.eventually.have.property( 'metaDataId', oldFile.metaDataId );
         });
     });
     describe( 'move', () => {
@@ -238,8 +227,7 @@ describe( 'mongo-wrapper', () => {
         const newPath = '/movelevel/move.txt';
         let oldFile;
         it( 'should respond with success on a successful move', () => {
-            return expect( mongo.move( userId, oldPath, newPath )).to.be.fulfilled
-                .and.eventually.have.property( 'status', 'SUCCESS' );
+            return expect( mongo.move( userId, oldPath, newPath )).to.eventually.have.property( 'status', 'SUCCESS' );
         });
         it( 'the old file should not exist', () => {
             oldFile = () => {
@@ -247,8 +235,7 @@ describe( 'mongo-wrapper', () => {
             };
         });
         it( 'the file should exist at the new path with the same metaDataId', () => {
-            return expect( File.findOne({ name: newPath }).exec()).to.be.fulfilled
-                .and.eventually.have.property( 'metaDataId', oldFile.metaDataId );
+            return expect( File.findOne({ name: newPath }).exec()).to.eventually.have.property( 'metaDataId', oldFile.metaDataId );
         });
     });
     xdescribe( 'destroy', () => {
@@ -270,8 +257,7 @@ describe( 'mongo-wrapper', () => {
             });
         });
         it( 'should respond with success on a successful delete', () => {
-            return expect( mongo.destroy( userId, fileToDelete )).to.be.fulfilled
-                .and.eventually.have.property( 'status', 'SUCCESS' );
+            return expect( mongo.destroy( userId, fileToDelete )).to.eventually.have.property( 'status', 'SUCCESS' );
         });
         // todo: this makes no sense, should be deleting children
         it( 'should only destroy the file record and intervening records', () => {

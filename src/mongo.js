@@ -55,8 +55,6 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                     const index = i - 1;
                     const array = pathArray;
                     queue = queue.then(( file ) => {
-                        // this is empty the first time around, but we still want to verify the
-                        // root path
                         // if there is no resource, and this is not the end of the path, we have a problem
                         if ( !file && index !== array.length - 1 ) {
                             reject( 'RESOURCE_NOT_FOUND' );
@@ -83,7 +81,7 @@ module.exports.alias = function alias( fullPath, userId, operation ) {
                             reject( 'INVALID_RESOURCE_PATH' );
                         }
                         else {
-                            // as long as the file exists, sent it to the array
+                            // as long as the file exists, send it to the array
                             // if it does not exist, and it has passed the tests above, no problem
                             // we'll just be checking all of the parents
                             if ( file ) {
