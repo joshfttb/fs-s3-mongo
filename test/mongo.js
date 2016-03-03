@@ -38,7 +38,6 @@ const insertFixture = function insertFixture( path ) {
             _id: testGuidPrefix + value,
             get mimeType() {
                 let mimeVar;
-                // todo: fix this, it's not working
                 if ( index === array.length - 1 ) {
                     mimeVar = mime.lookup( value.split( '.' ).pop());
                 }
